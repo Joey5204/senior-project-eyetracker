@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Eye Communicator</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header id="bar">
+    <div id="sentence" aria-live="polite"></div>
+    <button class="target bar-btn" id="btn-speak" data-pos="speak"></button>
+    <button class="target bar-btn" id="btn-clear" data-pos="clear"></button>
+  </header>
+
+  <main id="grid"></main>
+
+  <footer id="status">
+    <span id="mode-badge"></span>
+    <span id="hint">G: mouse/gaze &middot; L: language &middot; F: fullscreen</span>
+    <button id="btn-lang" hidden></button>
+  </footer>
+
+  <div id="gaze-dot" hidden></div>
+
+  <div id="start" role="button" tabindex="0"><span id="start-text"></span></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
