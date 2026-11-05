@@ -22,3 +22,7 @@ python third_party\EyeTracker\OrloskyPupilDetector.py
 ```
 
 Select `eye_test.mp4` if a file window opens.
+
+## Web app
+
+The communication interface lives in `app/`. See [app/README.md](app/README.md) for how to run and test it.

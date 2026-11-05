@@ -32,17 +32,50 @@ python app/tools/simulate_gaze.py --hold 0.2 0.3
 Then press **G** in the browser to switch to gaze mode. The cyan dot is the "gaze" and it selects
 whatever tile it rests on.
 
-### Use the real tracker (demo only, not calibrated)
+## Test with the real tracker (demo only, not calibrated)
 
-Start the tracker from its own folder, so it writes `gaze_vector.txt` there:
+Use two terminals, both at the repo root with the venv active (`.venv\Scripts\Activate.ps1`).
+
+**Terminal 1: the tracker**
 
 ```
-python app/server.py --gaze-file third_party/EyeTracker/3DTracker/gaze_vector.txt
+python third_party\EyeTracker\3DTracker\Orlosky3DEyeTracker.py
 ```
 
-Press **G** in the browser. If the dot moves the wrong way, add `--flip-x` or `--flip-y`; change
-`--gain` to make it move more or less. This uses a fixed mapping from gaze direction to screen
-position. Proper 9-point calibration replaces it later (see "Next steps").
+Pick the camera and click **Start Camera**. Look around for about 20 seconds so the eye model settles,
+and check that the yellow ellipse sits on the pupil.
+
+The tracker writes `gaze_vector.txt` into the folder you launched it from. Launched from the repo root,
+the file is `gaze_vector.txt` in the repo root.
+
+**Terminal 2: the web server**
+
+```
+python app\server.py --gaze-file gaze_vector.txt
+```
+
+The path after `--gaze-file` must be the file the tracker is writing. If you launch the tracker from
+another folder, use that folder's `gaze_vector.txt` instead.
+
+Open http://localhost:5000, click once, and press **G** to switch to gaze mode.
+
+| Badge | Meaning |
+|-------|---------|
+| Gaze: live | The tracker is writing new data and the dot follows your eye |
+| Gaze: no signal | No new data: wrong file path, tracker closed, or pupil not detected |
+
+### Troubleshooting
+
+- **"Gaze: no signal" while the tracker runs:** the server is probably watching a different
+  `gaze_vector.txt`. Run `Get-Content gaze_vector.txt` twice a few seconds apart; the numbers should
+  change. If they do not, check the path given to `--gaze-file`.
+- **"area was 0" in the tracker terminal:** the pupil was not found on that frame (blink, partly hidden
+  pupil). A few are normal. A constant stream means detection is failing, so check the yellow ellipse.
+- **`MSMF ... can't be used to capture by index` warnings:** harmless. The tracker is probing camera
+  numbers that do not exist.
+- **Dot moves the wrong way:** restart the server with `--flip-x` or `--flip-y`.
+- **Dot moves too little or too much:** change `--gain` (for example `--gain 3` or `--gain 0.8`).
+- Do not run `simulate_gaze.py` and `--gaze-file` together; they overwrite each other.
 
 ## Keys
 
