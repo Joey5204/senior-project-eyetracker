@@ -25,4 +25,12 @@ Select `eye_test.mp4` if a file window opens.
 
 ## Web app
 
-The communication interface lives in `app/`. See [app/README.md](app/README.md) for how to run and test it.
+The web app that turns gaze into words (Flask server, calibration, categories and words,
+spoken output) lives in [`app/`](app/). See [app/README.md](app/README.md) for how to run
+it, calibrate, and test it with the tracker.
+
+Quick start:
+
+    python app\server.py --gaze-file gaze_vector.txt
+
+(run the eye tracker from the repo root so it writes `gaze_vector.txt` there)

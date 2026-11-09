@@ -17,9 +17,20 @@
 
   <footer id="status">
     <span id="mode-badge"></span>
-    <span id="hint">G: mouse/gaze &middot; L: language &middot; F: fullscreen</span>
+    <span id="calib-badge"></span>
+    <span id="hint">G: mouse/gaze &middot; C: calibrate &middot; L: language &middot; F: fullscreen</span>
+    <button id="btn-calib">Calibrate (C)</button>
     <button id="btn-lang" hidden></button>
   </footer>
+
+  <div id="calib" hidden>
+    <div id="calib-marks"></div>
+    <div id="calib-msg"></div>
+    <div id="calib-dot"></div>
+    <div id="calib-actions"></div>
+    <pre id="calib-readout"></pre>
+    <canvas id="calib-plot"></canvas>
+  </div>
 
   <div id="gaze-dot" hidden></div>
 

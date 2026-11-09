@@ -138,8 +138,11 @@ body.gaze * { cursor: none !important; }
 #mode-badge.live { color: var(--ok); }
 #mode-badge.nosignal { color: #fbbf24; }
 
-#btn-lang {
-  margin-left: auto;
+#calib-badge { font-weight: 700; }
+#calib-badge.live { color: var(--ok); }
+#calib-badge.nosignal { color: #fbbf24; }
+
+#status button {
   background: #223049;
   color: var(--text);
   border: 0;
@@ -147,6 +150,8 @@ body.gaze * { cursor: none !important; }
   padding: 6px 14px;
   font: inherit;
 }
+
+#btn-calib { margin-left: auto; }
 
 /* ---- gaze cursor ---- */
 #gaze-dot {
@@ -160,7 +165,138 @@ body.gaze * { cursor: none !important; }
   background: rgba(53, 208, 255, 0.35);
   border: 3px solid var(--accent);
   pointer-events: none;
-  z-index: 20;
+  z-index: 45; /* above the calibration screen so you can check the dot after calibrating */
+}
+
+/* ---- calibration screen ---- */
+#calib {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: #0b0e13;
+}
+
+#calib[hidden] { display: none; }
+
+#calib-msg {
+  position: absolute;
+  left: 50%;
+  top: 24%;
+  transform: translateX(-50%);
+  width: min(82%, 900px);
+  text-align: center;
+  font-size: clamp(18px, 2.2vw, 30px);
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+#calib-msg.ok { color: var(--ok); }
+#calib-msg.warn { color: #fbbf24; }
+#calib-msg.bad { color: #f87171; }
+
+#calib-dot {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+#calib-dot::after { /* small dark centre to look at */
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: #0b0e13;
+}
+
+#calib-dot[hidden] { display: none; }
+#calib-dot.collect { background: var(--ok); }
+
+@keyframes calshrink {
+  from { transform: scale(2.4); opacity: 0.55; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.calib-mark { /* numbered circles: dots already accepted, later coloured by how well they fit */
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  border: 3px dashed #3b475b;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7f8ba0;
+  font-weight: 700;
+  font-size: 20px;
+  pointer-events: none;
+}
+.calib-mark.taken { border-style: solid; border-color: #35d0ff55; }
+.calib-mark[data-dot] { pointer-events: auto; cursor: pointer !important; }
+.calib-mark.ok { border-color: var(--ok); color: var(--ok); }
+.calib-mark.warn { border-color: #fbbf24; color: #fbbf24; }
+.calib-mark.bad { border-color: #f87171; color: #f87171; }
+
+#calib, #calib * { cursor: auto !important; }
+
+#calib-actions {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 16px;
+  z-index: 2;
+}
+#calib-actions button {
+  font-size: clamp(16px, 1.8vw, 24px);
+  padding: 12px 26px;
+  border-radius: 12px;
+  border: 2px solid #3b475b;
+  background: #182030;
+  color: #e6edf7;
+  cursor: pointer;
+}
+#calib-actions button.primary { background: #1d4ed8; border-color: #3b82f6; }
+
+#calib-readout {
+  position: absolute;
+  left: 16%;
+  bottom: 3%;
+  width: 28%;
+  height: 17%;
+  margin: 0;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  overflow: hidden;
+  font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace;
+  white-space: pre;
+  color: #cbd5e1;
+  background: #121824;
+  border: 1px solid #2a3446;
+  border-radius: 8px;
+  pointer-events: none;
+}
+#calib-readout[data-steady="ok"] { border-color: var(--ok); }
+#calib-readout[data-steady="warn"] { border-color: #fbbf24; }
+#calib-readout[data-steady="bad"] { border-color: #f87171; }
+
+#calib-plot {
+  position: absolute;
+  left: 55%;
+  bottom: 3%;
+  width: 29%;
+  height: 17%;
+  background: #121824;
+  border-radius: 8px;
+  pointer-events: none;
 }
 
 /* ---- start overlay (browsers need one click before audio can play) ---- */
