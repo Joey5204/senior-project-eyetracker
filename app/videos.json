@@ -1,0 +1,9 @@
+{
+  "note": "Videos the person can watch. Add entries with the id from the youtube.com/watch?v=ID address. The video owner must allow embedding.",
+  "videos": [
+    {
+      "id": "4S06mRc5jwY",
+      "title": "Earth from the Space Station (NASA, 4K)"
+    }
+  ]
+}

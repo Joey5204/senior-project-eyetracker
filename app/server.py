@@ -15,7 +15,9 @@ Then open http://localhost:5000 and press C to calibrate (needs gaze mode).
 import argparse
 import json
 import math
+import os
 import queue
+import re
 import threading
 import time
 from pathlib import Path
@@ -26,10 +28,13 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 APP_DIR = Path(__file__).resolve().parent
 STATIC_DIR = APP_DIR / "static"
 VOCAB_PATH = APP_DIR / "vocab.json"
+SETTINGS_PATH = APP_DIR / "settings.json"  # written by the app (video source); safe to delete
+DEFAULT_VIDEO = "4S06mRc5jwY"  # shown until a caregiver pastes a playlist link
 
 # Settings that main() can override from the command line.
 CFG = {
     "calib_path": APP_DIR / "calibration.json",
+    "settings_path": SETTINGS_PATH,
     "screen_w_cm": None,  # optional: lets accuracy be reported in degrees
     "distance_cm": None,  # optional: eye-to-screen distance
 }
@@ -321,6 +326,81 @@ def api_vocab():
         return jsonify(json.load(f))
 
 
+# ---------- video source (set from the page, no file editing) ----------
+def parse_youtube(text):
+    """Pull a playlist id or a single video id out of whatever the caregiver pasted
+    (a full link, a short youtu.be link, or just the id). Returns ({"playlist": id} or
+    {"video": id}, None) or (None, "message why not")."""
+    text = (text or "").strip()
+    if not text or len(text) > 400:
+        return None, "Paste a YouTube link."
+    m = re.search(r"[?&]list=([A-Za-z0-9_-]{10,64})", text) or re.fullmatch(r"((?:PL|UU|FL|OL|LL|RD|WL)[A-Za-z0-9_-]{10,60})", text)
+    if m:
+        pid = m.group(1)
+        if pid.startswith("RD"):
+            return None, "YouTube Mixes cannot be embedded. Use a normal playlist (its id starts with PL)."
+        if pid.startswith(("WL", "LL")):
+            return None, "Watch later and Liked videos are private. Make a normal playlist, set it to Unlisted or Public, and paste that."
+        return {"playlist": pid}, None
+    m = re.search(r"(?:v=|youtu\.be/|/embed/|/shorts/)([A-Za-z0-9_-]{11})", text) or re.fullmatch(r"([A-Za-z0-9_-]{11})", text)
+    if m:
+        return {"video": m.group(1)}, None
+    return None, "That does not look like a YouTube video or playlist link."
+
+
+def load_video_source():
+    try:
+        with open(CFG["settings_path"], encoding="utf-8") as f:
+            data = json.load(f).get("video_source") or {}
+    except (OSError, ValueError, AttributeError):
+        data = {}
+    if isinstance(data.get("playlist"), str) and data["playlist"]:
+        return {"playlist": data["playlist"], "video": None, "configured": True}
+    if isinstance(data.get("video"), str) and data["video"]:
+        return {"playlist": None, "video": data["video"], "configured": True}
+    return {"playlist": None, "video": DEFAULT_VIDEO, "configured": False}
+
+
+def save_video_source(src):
+    path = CFG["settings_path"]
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            data = {}
+    except (OSError, ValueError):
+        data = {}
+    if src is None:
+        data.pop("video_source", None)
+    else:
+        data["video_source"] = src
+    tmp = str(path) + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+    os.replace(tmp, path)
+
+
+@app.get("/api/video-source")
+def api_video_source_get():
+    return jsonify(load_video_source())
+
+
+@app.post("/api/video-source")
+def api_video_source_set():
+    body = request.get_json(silent=True)
+    src, err = parse_youtube(body.get("url") if isinstance(body, dict) else None)
+    if err:
+        return jsonify({"error": err}), 400
+    save_video_source(src)
+    return jsonify(load_video_source())
+
+
+@app.delete("/api/video-source")
+def api_video_source_clear():
+    save_video_source(None)
+    return jsonify(load_video_source())
+
+
 @app.get("/")
 def index():
     return send_from_directory(STATIC_DIR, "index.html")
@@ -380,6 +460,7 @@ def main():
     ap.add_argument("--gain", type=float, default=1.5)
     ap.add_argument("--flip-x", action="store_true")
     ap.add_argument("--flip-y", action="store_true")
+    ap.add_argument("--settings-file", default=str(SETTINGS_PATH), help="where the video choice is saved")
     ap.add_argument("--calibration-file", default=str(CFG["calib_path"]),
                     help="where the calibration is saved (default: app/calibration.json)")
     ap.add_argument("--screen-width-cm", type=float,
@@ -389,6 +470,7 @@ def main():
     args = ap.parse_args()
 
     CFG["calib_path"] = Path(args.calibration_file)
+    CFG["settings_path"] = Path(args.settings_file)
     CFG["screen_w_cm"] = args.screen_width_cm
     CFG["distance_cm"] = args.distance_cm
     load_calibration()

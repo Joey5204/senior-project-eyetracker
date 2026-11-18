@@ -1,6 +1,6 @@
 // Eye Communicator front end.
 // Pointer source: mouse (default) or gaze (server-sent events from the tracker).
-// Selection: dwell on a target for dwell_ms. Click also selects instantly (for caregivers/testing).
+// Selection: each target has its own accumulated look time (see the dwell section). Click also selects instantly.
 
 (() => {
   "use strict";
@@ -10,13 +10,12 @@
   const state = {
     vocab: null,
     lang: "en",
-    screen: "categories", // or "words"
-    catId: null,
+    catId: null, // chosen category (stays chosen after a word is picked)
+    page: 0,     // page of words shown for that category
     sentence: [],
     mode: "mouse", // or "gaze"
     pointer: { x: -1, y: -1 },
-    dwellMs: 1000,
-    dwell: { el: null, start: 0, lastOn: 0 },
+    dwellCfg: {}, // ms to select, per kind of target (from vocab.json "dwell")
     blockedPos: null, // grid position that must be left before it can fire again
     lockUntil: 0,
     lastGazeAt: 0,
@@ -52,7 +51,16 @@
   function renderBar() {
     $("#btn-speak").textContent = ui("speak");
     $("#btn-clear").textContent = ui("clear");
+    $("#btn-help").textContent = ui("help");
+    $("#help-text").textContent = ui("help_banner");
+    $("#help-cancel").textContent = ui("cancel");
     $("#start-text").textContent = ui("start");
+    $("#v-prev").setAttribute("aria-label", ui("prev"));
+    $("#v-play").setAttribute("aria-label", ui("play"));
+    $("#v-next").setAttribute("aria-label", ui("next"));
+    $("#v-vdown").textContent = "\u2212  " + ui("quieter");
+    $("#v-vup").textContent = "+  " + ui("louder");
+    renderVolume();
 
     const box = $("#sentence");
     box.textContent = "";
@@ -71,10 +79,12 @@
     }
   }
 
-  function makeTile(pos, text, cls, act, hue) {
+  // kind decides how long it takes to select: "word", "category", "nav", "speak", "clear", "help", "video"
+  function makeTile(key, text, cls, kind, act, hue) {
     const b = document.createElement("button");
     b.className = "target tile " + (cls || "");
-    b.dataset.pos = String(pos);
+    b.dataset.pos = key; // unique key: used for progress memory and the post-select lock
+    b.dataset.kind = kind;
     b.textContent = text;
     if (hue !== undefined) b.style.setProperty("--hue", hue);
     b._act = act;
@@ -82,24 +92,50 @@
     return b;
   }
 
-  function renderGrid() {
-    clearDwell();
-    const grid = $("#grid");
-    grid.textContent = "";
-    const v = state.vocab;
+  const wordsPerPage = () => state.vocab.dwell.words_per_page || 4;
 
-    if (state.screen === "categories") {
-      v.categories.forEach((c, i) => {
-        const hue = Math.round((i * 360) / v.categories.length);
-        grid.appendChild(makeTile(i, label(c.label), "cat", () => openCategory(c.id), hue));
-      });
-    } else {
-      const cat = v.categories.find((c) => c.id === state.catId);
-      cat.words.forEach((w, i) => {
-        grid.appendChild(makeTile(i, label(w.label), "word", () => pickWord(w)));
-      });
-      grid.appendChild(makeTile(cat.words.length, "← " + ui("back"), "back", goHome));
+  function renderCats() {
+    const box = $("#cats");
+    box.textContent = "";
+    const v = state.vocab;
+    v.categories.forEach((c, i) => {
+      const hue = Math.round((i * 360) / v.categories.length);
+      const b = makeTile("cat:" + c.id, label(c.label), "cat", "category", () => openCategory(c.id), hue);
+      if (c.id === state.catId) b.classList.add("current");
+      box.appendChild(b);
+    });
+  }
+
+  // Words: a fixed number of slots, so the layout never jumps. The last slot is
+  // "More" when the category has more words than fit, otherwise it is left empty.
+  function renderWords() {
+    const box = $("#words");
+    box.textContent = "";
+    const slot = () => { const d = document.createElement("div"); d.className = "slot"; return d; };
+    const per = wordsPerPage();
+    const cat = state.vocab.categories.find((c) => c.id === state.catId);
+    if (!cat) {
+      const h = document.createElement("div");
+      h.className = "hint-col";
+      h.textContent = ui("pick_category");
+      box.appendChild(h);
+      return;
     }
+    const pages = Math.max(1, Math.ceil(cat.words.length / per));
+    const page = state.page % pages;
+    const shown = cat.words.slice(page * per, page * per + per);
+    for (const w of shown) box.appendChild(makeTile("word:" + w.id, label(w.label), "word", "word", () => pickWord(w)));
+    for (let i = shown.length; i < per; i++) box.appendChild(slot());
+    if (pages > 1) {
+      box.appendChild(makeTile("more", `${ui("more")}  ${page + 1}/${pages}  \u25B6`, "more", "nav", nextPage));
+    } else {
+      box.appendChild(slot());
+    }
+  }
+
+  function renderGrid() {
+    renderCats();
+    renderWords();
   }
 
   function renderAll() {
@@ -107,27 +143,26 @@
     renderGrid();
     const btn = $("#btn-lang");
     btn.hidden = !hasThai();
-    btn.textContent = state.lang === "en" ? "ไทย" : "English";
+    btn.textContent = state.lang === "en" ? "\u0e44\u0e17\u0e22" : "English";
   }
 
   // ---------- actions ----------
   function openCategory(id) {
-    state.screen = "words";
     state.catId = id;
+    state.page = 0;
     renderGrid();
   }
 
-  function goHome() {
-    state.screen = "categories";
-    state.catId = null;
-    renderGrid();
+  function nextPage() {
+    state.page += 1; // wraps around in renderWords
+    renderWords();
   }
 
   function pickWord(w) {
     state.sentence.push(w);
     renderBar();
     speak([w]);
-    goHome();
+    // the category stays open: people usually say several words from the same one
   }
 
   function clearSentence() {
@@ -143,7 +178,8 @@
   function speak(items) {
     for (const it of items) {
       const snapshot = { id: it.id, text: label(it.label), lang: state.lang };
-      speechChain = speechChain.then(() => playItem(snapshot)).catch(() => {});
+      duckVideo(true); // lower the video's sound while we talk
+      speechChain = speechChain.then(() => playItem(snapshot)).catch(() => {}).then(() => duckVideo(false));
     }
   }
 
@@ -179,25 +215,34 @@
   }
 
   // ---------- dwell selection ----------
+  // Every target keeps its own look time. Looking away pauses it (it is not lost); it is only
+  // forgotten after `memory_ms` without being looked at. Selecting anything clears all progress,
+  // so old glances cannot trigger a surprise selection later.
+  const dw = { acc: new Map(), last: new Map(), prevT: 0 };
+
+  function needMs(el) {
+    return state.dwellCfg[el.dataset.kind] || 3000;
+  }
+
   function targetAt(x, y) {
     if (x < 0 || y < 0) return null;
     const el = document.elementFromPoint(x, y);
     return el ? el.closest(".target") : null;
   }
 
-  function clearDwell() {
-    const d = state.dwell;
-    if (d.el && d.el.isConnected) {
-      d.el.classList.remove("dwelling");
-      d.el.style.setProperty("--p", 0);
+  function resetProgress() {
+    dw.acc.clear();
+    dw.last.clear();
+    for (const el of document.querySelectorAll(".target")) {
+      el.classList.remove("dwelling", "kept");
+      el.style.setProperty("--p", 0);
     }
-    d.el = null;
   }
 
   function fire(el) {
     if (!el._act) return;
     const pos = el.dataset.pos;
-    clearDwell();
+    resetProgress();
     el.classList.add("picked");
     setTimeout(() => el.classList.remove("picked"), 250);
     el._act();
@@ -208,8 +253,32 @@
     state.lockUntil = performance.now() + 700;
   }
 
+  // "Hold" buttons (volume): keep acting every volume_repeat_ms for as long as they are looked at.
+  // Unlike fire(), this does not lock the pointer, so the next step comes without looking away.
+  function repeatFire(el) {
+    const pos = el.dataset.pos;
+    for (const k of [...dw.acc.keys()]) {
+      if (k !== pos) { dw.acc.delete(k); dw.last.delete(k); }
+    }
+    el._act();
+    const again = state.dwellCfg.volume_repeat_ms || 600;
+    dw.acc.set(pos, Math.max(0, needMs(el) - again));
+  }
+
+  // Show each target's progress: bright ring while looked at, dim ring while it is only remembered.
+  function paintProgress(current) {
+    for (const el of document.querySelectorAll(".target")) {
+      const acc = dw.acc.get(el.dataset.pos) || 0;
+      const p = Math.min(1, acc / needMs(el));
+      el.style.setProperty("--p", p.toFixed(3));
+      el.classList.toggle("dwelling", el === current);
+      el.classList.toggle("kept", el !== current && p > 0);
+    }
+  }
+
   function loop(now) {
-    const d = state.dwell;
+    const dt = dw.prevT ? Math.min(now - dw.prevT, 100) : 0; // a hidden tab must not add minutes at once
+    dw.prevT = now;
     // In gaze mode, no fresh sample for 400 ms means the tracker lost the eye:
     // ignore the last position so a frozen dot can never select anything.
     const gazeStale = state.mode === "gaze" && now - state.lastGazeAt > 400;
@@ -222,19 +291,18 @@
 
     if (state.blockedPos !== null && pos !== state.blockedPos) state.blockedPos = null;
 
+    let current = null;
     if (el && pos !== state.blockedPos && now >= state.lockUntil) {
-      if (d.el !== el) {
-        clearDwell();
-        d.el = el;
-        d.start = now;
-        el.classList.add("dwelling");
-      }
-      d.lastOn = now;
-      const p = Math.min(1, (now - d.start) / state.dwellMs);
-      el.style.setProperty("--p", p.toFixed(3));
-      if (p >= 1) fire(el);
-    } else if (d.el && now - d.lastOn > 200) {
-      clearDwell(); // 200 ms grace so a small gaze jitter doesn't reset the timer
+      current = el;
+      dw.acc.set(pos, (dw.acc.get(pos) || 0) + dt);
+      dw.last.set(pos, now);
+    }
+    for (const [k, t] of dw.last) {
+      if (now - t > state.dwellCfg.memory_ms) { dw.last.delete(k); dw.acc.delete(k); }
+    }
+    paintProgress(current);
+    if (current && dw.acc.get(pos) >= needMs(current)) {
+      if (current.dataset.repeat) repeatFire(current); else fire(current);
     }
     requestAnimationFrame(loop);
   }
@@ -312,8 +380,15 @@
   }
 
   window.addEventListener("keydown", (e) => {
+    if (e.target && e.target.tagName === "INPUT") {   // typing in a text box: no shortcuts
+      if (e.key === "Enter") saveVideoSource();
+      else if (e.key === "Escape") closeVideoSetup();
+      return;
+    }
     if (!state.started) { begin(); return; }
     const k = e.key.toLowerCase();
+    if (!$("#video-setup").hidden) { if (k === "escape") closeVideoSetup(); return; }
+    if (help.on && k === "escape") { cancelHelp(); return; }
     if (cal.active) {
       if (["shift", "control", "alt", "meta", "tab"].includes(k)) return;
       e.preventDefault(); // Space must not scroll or click a focused button
@@ -324,6 +399,7 @@
     }
     if (k === "g") setMode(state.mode === "mouse" ? "gaze" : "mouse");
     else if (k === "c") runCalibration();
+    else if (k === "v") openVideoSetup();
     else if (k === "l") toggleLang();
     else if (k === "f") {
       if (document.fullscreenElement) document.exitFullscreen();
@@ -332,6 +408,10 @@
   });
   $("#start").addEventListener("click", begin);
   $("#btn-lang").addEventListener("click", toggleLang);
+  $("#btn-video").addEventListener("click", () => { if (state.started && !cal.active) openVideoSetup(); });
+  $("#video-save").addEventListener("click", saveVideoSource);
+  $("#video-reset").addEventListener("click", resetVideoSource);
+  $("#video-close").addEventListener("click", closeVideoSetup);
   $("#btn-calib").addEventListener("click", () => { if (state.started && !cal.active) runCalibration(); });
 
   // ---------- calibration ----------
@@ -524,7 +604,7 @@
     cal.live = null;
     cal.liveVec = null;
     if (state.mode !== "gaze") setMode("gaze"); // calibration needs the tracker's data
-    clearDwell();
+    resetProgress();
     $("#calib-marks").textContent = "";
     $("#calib-actions").textContent = "";
     $("#calib-dot").hidden = false;
@@ -712,20 +792,247 @@
     }
   }
 
+  // ---------- video panel (YouTube, controlled by our own big buttons) ----------
+  const vid = { src: null, player: null, ready: false, duck: 0, errors: 0,
+                level: Math.min(100, Math.max(0, Number(store.get("volume") ?? 100))), muted: false };
+
+  // ---- volume: our own level (0-100, steps of 10), kept in the browser so it survives a reload ----
+  function renderVolume() {
+    const m = $("#v-mute");
+    m.classList.toggle("muted", vid.muted || vid.level === 0);
+    $("#vol-label").textContent = vid.muted || vid.level === 0 ? ui("muted") : `${ui("volume")} ${vid.level}%`;
+    $("#vol-bar i").style.width = (vid.muted ? 0 : vid.level) + "%";
+    m.setAttribute("aria-label", $("#vol-label").textContent);
+  }
+
+  // At 0% or muted the player is MUTED and its volume is left alone: calling unMute() after
+  // setVolume(0) lets YouTube bring the old volume back, which is why 0% used to stay audible.
+  // The player is only told about a change (mute <-> unmute, new volume), not on every step.
+  const silent = () => vid.muted || vid.level === 0;
+
+  function applyVolume() {
+    renderVolume();
+    if (!vid.ready || vid.duck > 0) return; // while speaking, the lowered volume stays until speech ends
+    try {
+      if (silent()) {
+        if (vid.pMuted !== true) { vid.player.mute(); vid.pMuted = true; }
+      } else {
+        if (vid.pMuted !== false) { vid.player.unMute(); vid.pMuted = false; } // first, then the volume
+        vid.player.setVolume(vid.level);
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  function stepVolume(d) {
+    vid.level = Math.min(100, Math.max(0, vid.level + d * 10));
+    if (d > 0) vid.muted = false; // asking for louder means: I want to hear it
+    store.set("volume", vid.level);
+    applyVolume();
+  }
+
+  function toggleMute() {
+    vid.muted = !vid.muted;
+    applyVolume();
+  }
+
+  function videoMsg(text) {
+    $("#video-msg").textContent = text || "";
+    $("#video-msg").style.display = text ? "flex" : "none";
+  }
+
+  // Title comes from the player, so it follows the playlist by itself.
+  function showVideoTitle() {
+    let t = "";
+    try { t = (vid.player && vid.player.getVideoData && vid.player.getVideoData().title) || ""; } catch (e) { /* ignore */ }
+    if (!t && vid.src && !vid.src.configured) t = ui("video_hint");
+    $("#video-title").textContent = t;
+  }
+
+  function loadYouTubeApi() {
+    return new Promise((resolve, reject) => {
+      if (window.YT && window.YT.Player) return resolve();
+      window.onYouTubeIframeAPIReady = resolve;
+      const sc = document.createElement("script");
+      sc.src = "https://www.youtube.com/iframe_api";
+      sc.onerror = () => reject(new Error("offline"));
+      document.head.appendChild(sc);
+      setTimeout(() => reject(new Error("timeout")), 8000);
+    });
+  }
+
+  async function initVideo() {
+    try { vid.src = await (await fetch("/api/video-source")).json(); } catch (e) { vid.src = null; }
+    if (!vid.src) { videoMsg(ui("video_off")); return; }
+    startPlayer();
+  }
+
+  // (Re)create the player for vid.src. Used at start-up and when a caregiver picks another playlist.
+  async function startPlayer() {
+    showVideoTitle();
+    videoMsg(ui("loading"));
+    try {
+      await loadYouTubeApi();
+    } catch (e) {
+      videoMsg(ui("video_off")); // the rest of the app still works without internet
+      return;
+    }
+    if (vid.player) { try { vid.player.destroy(); } catch (e) { /* ignore */ } }
+    vid.player = null;
+    vid.ready = false;
+    vid.pMuted = undefined; // what the new player is doing with its sound is not known yet
+    vid.errors = 0;
+    if (!document.getElementById("yt")) {          // destroy() removes the placeholder
+      const d = document.createElement("div");
+      d.id = "yt";
+      $("#video-box").prepend(d);
+    }
+    const vars = { controls: 0, rel: 0, modestbranding: 1, disablekb: 1, playsinline: 1,
+                   iv_load_policy: 3, origin: location.origin };
+    const cfg = { width: "100%", height: "100%", playerVars: vars, events: {
+      onReady: () => {
+        vid.ready = true; videoMsg("");
+        applyVolume();
+        if (vid.src.playlist) { try { vid.player.setLoop(true); } catch (e) { /* ignore */ } }
+        showVideoTitle();
+      },
+      // Nothing in this app changes the playback speed, so if it ever changes (a YouTube shortcut,
+      // press-and-hold on the video), put it back to normal.
+      onPlaybackRateChange: () => {
+        try { if (vid.player.getPlaybackRate() !== 1) vid.player.setPlaybackRate(1); } catch (e) { /* ignore */ }
+      },
+      onStateChange: (e) => { if (e.data === 1) { vid.errors = 0; videoMsg(""); } showVideoTitle(); },
+      onError: (e) => {
+        // YouTube's error numbers: 100 not found or private, 101/150 owner blocks embedding,
+        // 153 the page was opened in a way YouTube does not accept, 2 bad playlist or video id
+        videoMsg(`${ui("video_error")} (YouTube error ${e && e.data})`);
+        let n = 1;
+        try { n = (vid.player.getPlaylist() || []).length || 1; } catch (err) { /* ignore */ }
+        if (vid.src.playlist && n > 1 && ++vid.errors < n) setTimeout(() => stepVideo(1), 2000);
+      },
+    } };
+    // a playlist needs no videoId, and the key must not be present at all (not even undefined)
+    if (vid.src.playlist) { vars.listType = "playlist"; vars.list = vid.src.playlist; }
+    else cfg.videoId = vid.src.video;
+    clearTimeout(vid.watch);
+    vid.watch = setTimeout(() => { if (!vid.ready) videoMsg(ui("video_stuck")); },
+                           Number(new URLSearchParams(location.search).get("videowait")) || 15000);
+    vid.player = new window.YT.Player("yt", cfg);
+  }
+
+  function togglePlay() {
+    if (!vid.ready) return;
+    const st = vid.player.getPlayerState();
+    if (st === 1 || st === 3) vid.player.pauseVideo(); else vid.player.playVideo();
+  }
+
+  // Next / previous follow the YouTube playlist. A single video just starts over.
+  function stepVideo(d) {
+    if (!vid.ready) return;
+    videoMsg("");
+    if (vid.src.playlist) {
+      if (d > 0) vid.player.nextVideo(); else vid.player.previousVideo();
+    } else {
+      vid.player.seekTo(0, true);
+      vid.player.playVideo();
+    }
+  }
+
+  // ---------- caregiver: choose the videos ----------
+  function openVideoSetup() {
+    $("#video-setup").hidden = false;
+    $("#video-setup-msg").textContent = "";
+    $("#video-url").value = "";
+    setTimeout(() => $("#video-url").focus(), 0);
+  }
+
+  function closeVideoSetup() {
+    $("#video-setup").hidden = true;
+    $("#video-url").blur();
+  }
+
+  async function saveVideoSource() {
+    const msg = $("#video-setup-msg");
+    msg.className = "";
+    msg.textContent = "Saving...";
+    try {
+      const r = await fetch("/api/video-source", { method: "POST", headers: { "Content-Type": "application/json" },
+                                                    body: JSON.stringify({ url: $("#video-url").value }) });
+      const body = await r.json();
+      if (!r.ok) { msg.className = "bad"; msg.textContent = body.error || "Could not save."; return; }
+      vid.src = body;
+      closeVideoSetup();      // no page reload: the sentence and the started state stay as they are
+      startPlayer();
+    } catch (e) {
+      msg.className = "bad";
+      msg.textContent = "Could not reach the server.";
+    }
+  }
+
+  async function resetVideoSource() {
+    try { vid.src = await (await fetch("/api/video-source", { method: "DELETE" })).json(); } catch (e) { return; }
+    closeVideoSetup();
+    startPlayer();
+  }
+
+  // Lower the video while the app speaks, restore it afterwards.
+  function duckVideo(on) {
+    vid.duck = Math.max(0, vid.duck + (on ? 1 : -1));
+    if (!vid.ready) return;
+    try {
+      if (on && vid.duck === 1 && !silent()) vid.player.setVolume(Math.min(vid.level, 15));
+      else if (!on && vid.duck === 0) applyVolume(); // back to the chosen level (or still silent)
+    } catch (e) { /* ignore */ }
+  }
+
+  // ---------- "I need help": spoken alert that repeats until it is cancelled ----------
+  const help = { on: false, timer: null };
+
+  function sayHelp() {
+    speak([{ id: "ui_help", label: state.vocab.ui.help_phrase }]);
+  }
+
+  function callHelp() {
+    if (help.on) return;
+    help.on = true;
+    $("#help-alert").hidden = false;
+    if (vid.ready) { try { vid.player.pauseVideo(); } catch (e) { /* ignore */ } }
+    sayHelp();
+    help.timer = setInterval(sayHelp, 9000);
+  }
+
+  function cancelHelp() {
+    help.on = false;
+    clearInterval(help.timer);
+    $("#help-alert").hidden = true;
+  }
+
   // ---------- boot ----------
   async function init() {
     const res = await fetch("/api/vocab");
     state.vocab = await res.json();
 
     const params = new URLSearchParams(location.search);
-    state.dwellMs = Number(params.get("dwell")) || state.vocab.dwell_ms || 1000;
+    state.dwellCfg = Object.assign({}, state.vocab.dwell);
+    const over = Number(params.get("dwell")); // ?dwell=600 : every target selects after 600 ms (testing)
+    if (over) for (const k of ["word", "category", "nav", "speak", "clear", "help", "video", "volume"]) state.dwellCfg[k] = over;
+    if (Number(params.get("memory"))) state.dwellCfg.memory_ms = Number(params.get("memory"));
+    if (Number(params.get("repeat"))) state.dwellCfg.volume_repeat_ms = Number(params.get("repeat"));
     state.lang = params.get("lang") || store.get("lang") || "en";
     if (!state.vocab.languages.includes(state.lang)) state.lang = "en";
     document.documentElement.lang = state.lang;
 
     $("#btn-speak")._act = speakSentence;
     $("#btn-clear")._act = clearSentence;
-    for (const id of ["#btn-speak", "#btn-clear"]) {
+    $("#btn-help")._act = callHelp;
+    $("#help-cancel")._act = cancelHelp;
+    $("#v-prev")._act = () => stepVideo(-1);
+    $("#v-play")._act = togglePlay;
+    $("#v-next")._act = () => stepVideo(1);
+    $("#v-vdown")._act = () => stepVolume(-1);
+    $("#v-vup")._act = () => stepVolume(1);
+    $("#v-mute")._act = toggleMute;
+    for (const id of ["#btn-speak", "#btn-clear", "#btn-help", "#help-cancel", "#v-prev", "#v-play", "#v-next",
+                      "#v-vdown", "#v-vup", "#v-mute"]) {
       const b = $(id);
       b.addEventListener("click", () => fire(b));
     }
@@ -735,6 +1042,7 @@
     if (params.get("nostart") === "1") begin();
 
     refreshCalibStatus();
+    initVideo();
     setInterval(updateBadge, 500);
     requestAnimationFrame(loop);
   }

@@ -1,96 +1,504 @@
 {
-  "languages": ["en", "th"],
-  "dwell_ms": 1000,
+  "languages": [
+    "en",
+    "th"
+  ],
+  "dwell": {
+    "word": 5000,
+    "category": 3000,
+    "nav": 1500,
+    "speak": 3000,
+    "clear": 3000,
+    "help": 3000,
+    "video": 1500,
+    "memory_ms": 15000,
+    "words_per_page": 4,
+    "volume": 1500,
+    "volume_repeat_ms": 600
+  },
   "ui": {
-    "back": {"en": "Back", "th": ""},
-    "speak": {"en": "Speak", "th": ""},
-    "clear": {"en": "Clear", "th": ""},
-    "placeholder": {"en": "Look at a word to select it", "th": ""},
-    "start": {"en": "Click or press any key to start", "th": ""}
+    "back": {
+      "en": "Back",
+      "th": ""
+    },
+    "speak": {
+      "en": "Speak",
+      "th": ""
+    },
+    "clear": {
+      "en": "Clear",
+      "th": ""
+    },
+    "placeholder": {
+      "en": "Look at a category, then a word",
+      "th": ""
+    },
+    "start": {
+      "en": "Click or press any key to start",
+      "th": ""
+    },
+    "help": {
+      "en": "I need help",
+      "th": ""
+    },
+    "help_phrase": {
+      "en": "I need help. Please come here.",
+      "th": ""
+    },
+    "help_banner": {
+      "en": "Calling for help...",
+      "th": ""
+    },
+    "cancel": {
+      "en": "Cancel",
+      "th": ""
+    },
+    "more": {
+      "en": "More",
+      "th": ""
+    },
+    "pick_category": {
+      "en": "Pick a category",
+      "th": ""
+    },
+    "video_off": {
+      "en": "Video needs internet",
+      "th": ""
+    },
+    "loading": {
+      "en": "Loading video...",
+      "th": ""
+    },
+    "video_error": {
+      "en": "This video cannot be played here",
+      "th": ""
+    },
+    "play": {
+      "en": "Play / Pause",
+      "th": ""
+    },
+    "prev": {
+      "en": "Previous video",
+      "th": ""
+    },
+    "next": {
+      "en": "Next video",
+      "th": ""
+    },
+    "video_hint": {
+      "en": "Caregiver: press V to choose the videos",
+      "th": ""
+    },
+    "video_stuck": {
+      "en": "YouTube is not answering. Check the playlist is Unlisted or Public (press V to change it).",
+      "th": ""
+    },
+    "quieter": {
+      "en": "Quieter",
+      "th": ""
+    },
+    "louder": {
+      "en": "Louder",
+      "th": ""
+    },
+    "volume": {
+      "en": "Volume",
+      "th": ""
+    },
+    "muted": {
+      "en": "Muted",
+      "th": ""
+    }
   },
   "categories": [
     {
       "id": "needs",
-      "label": {"en": "Needs", "th": ""},
+      "label": {
+        "en": "Needs",
+        "th": ""
+      },
       "words": [
-        {"id": "water", "label": {"en": "Water", "th": ""}},
-        {"id": "food", "label": {"en": "Food", "th": ""}},
-        {"id": "toilet", "label": {"en": "Toilet", "th": ""}},
-        {"id": "medicine", "label": {"en": "Medicine", "th": ""}},
-        {"id": "help", "label": {"en": "Help", "th": ""}},
-        {"id": "pain", "label": {"en": "I am in pain", "th": ""}},
-        {"id": "tired", "label": {"en": "I am tired", "th": ""}},
-        {"id": "hot", "label": {"en": "I am hot", "th": ""}}
+        {
+          "id": "water",
+          "label": {
+            "en": "Water",
+            "th": ""
+          }
+        },
+        {
+          "id": "food",
+          "label": {
+            "en": "Food",
+            "th": ""
+          }
+        },
+        {
+          "id": "toilet",
+          "label": {
+            "en": "Toilet",
+            "th": ""
+          }
+        },
+        {
+          "id": "medicine",
+          "label": {
+            "en": "Medicine",
+            "th": ""
+          }
+        },
+        {
+          "id": "help",
+          "label": {
+            "en": "Help",
+            "th": ""
+          }
+        },
+        {
+          "id": "pain",
+          "label": {
+            "en": "I am in pain",
+            "th": ""
+          }
+        },
+        {
+          "id": "tired",
+          "label": {
+            "en": "I am tired",
+            "th": ""
+          }
+        },
+        {
+          "id": "hot",
+          "label": {
+            "en": "I am hot",
+            "th": ""
+          }
+        }
       ]
     },
     {
       "id": "feelings",
-      "label": {"en": "Feelings", "th": ""},
+      "label": {
+        "en": "Feelings",
+        "th": ""
+      },
       "words": [
-        {"id": "happy", "label": {"en": "Happy", "th": ""}},
-        {"id": "sad", "label": {"en": "Sad", "th": ""}},
-        {"id": "scared", "label": {"en": "Scared", "th": ""}},
-        {"id": "angry", "label": {"en": "Angry", "th": ""}},
-        {"id": "comfortable", "label": {"en": "Comfortable", "th": ""}},
-        {"id": "uncomfortable", "label": {"en": "Uncomfortable", "th": ""}},
-        {"id": "cold", "label": {"en": "Cold", "th": ""}},
-        {"id": "bored", "label": {"en": "Bored", "th": ""}}
+        {
+          "id": "happy",
+          "label": {
+            "en": "Happy",
+            "th": ""
+          }
+        },
+        {
+          "id": "sad",
+          "label": {
+            "en": "Sad",
+            "th": ""
+          }
+        },
+        {
+          "id": "scared",
+          "label": {
+            "en": "Scared",
+            "th": ""
+          }
+        },
+        {
+          "id": "angry",
+          "label": {
+            "en": "Angry",
+            "th": ""
+          }
+        },
+        {
+          "id": "comfortable",
+          "label": {
+            "en": "Comfortable",
+            "th": ""
+          }
+        },
+        {
+          "id": "uncomfortable",
+          "label": {
+            "en": "Uncomfortable",
+            "th": ""
+          }
+        },
+        {
+          "id": "cold",
+          "label": {
+            "en": "Cold",
+            "th": ""
+          }
+        },
+        {
+          "id": "bored",
+          "label": {
+            "en": "Bored",
+            "th": ""
+          }
+        }
       ]
     },
     {
       "id": "people",
-      "label": {"en": "People", "th": ""},
+      "label": {
+        "en": "People",
+        "th": ""
+      },
       "words": [
-        {"id": "doctor", "label": {"en": "Doctor", "th": ""}},
-        {"id": "nurse", "label": {"en": "Nurse", "th": ""}},
-        {"id": "family", "label": {"en": "Family", "th": ""}},
-        {"id": "friend", "label": {"en": "Friend", "th": ""}},
-        {"id": "mother", "label": {"en": "Mother", "th": ""}},
-        {"id": "father", "label": {"en": "Father", "th": ""}},
-        {"id": "child", "label": {"en": "Child", "th": ""}},
-        {"id": "me", "label": {"en": "Me", "th": ""}}
+        {
+          "id": "doctor",
+          "label": {
+            "en": "Doctor",
+            "th": ""
+          }
+        },
+        {
+          "id": "nurse",
+          "label": {
+            "en": "Nurse",
+            "th": ""
+          }
+        },
+        {
+          "id": "family",
+          "label": {
+            "en": "Family",
+            "th": ""
+          }
+        },
+        {
+          "id": "friend",
+          "label": {
+            "en": "Friend",
+            "th": ""
+          }
+        },
+        {
+          "id": "mother",
+          "label": {
+            "en": "Mother",
+            "th": ""
+          }
+        },
+        {
+          "id": "father",
+          "label": {
+            "en": "Father",
+            "th": ""
+          }
+        },
+        {
+          "id": "child",
+          "label": {
+            "en": "Child",
+            "th": ""
+          }
+        },
+        {
+          "id": "me",
+          "label": {
+            "en": "Me",
+            "th": ""
+          }
+        }
       ]
     },
     {
       "id": "answers",
-      "label": {"en": "Answers", "th": ""},
+      "label": {
+        "en": "Answers",
+        "th": ""
+      },
       "words": [
-        {"id": "yes", "label": {"en": "Yes", "th": ""}},
-        {"id": "no", "label": {"en": "No", "th": ""}},
-        {"id": "maybe", "label": {"en": "Maybe", "th": ""}},
-        {"id": "thank_you", "label": {"en": "Thank you", "th": ""}},
-        {"id": "please", "label": {"en": "Please", "th": ""}},
-        {"id": "stop", "label": {"en": "Stop", "th": ""}},
-        {"id": "more", "label": {"en": "More", "th": ""}},
-        {"id": "dont_know", "label": {"en": "I don't know", "th": ""}}
+        {
+          "id": "yes",
+          "label": {
+            "en": "Yes",
+            "th": ""
+          }
+        },
+        {
+          "id": "no",
+          "label": {
+            "en": "No",
+            "th": ""
+          }
+        },
+        {
+          "id": "maybe",
+          "label": {
+            "en": "Maybe",
+            "th": ""
+          }
+        },
+        {
+          "id": "thank_you",
+          "label": {
+            "en": "Thank you",
+            "th": ""
+          }
+        },
+        {
+          "id": "please",
+          "label": {
+            "en": "Please",
+            "th": ""
+          }
+        },
+        {
+          "id": "stop",
+          "label": {
+            "en": "Stop",
+            "th": ""
+          }
+        },
+        {
+          "id": "more",
+          "label": {
+            "en": "More",
+            "th": ""
+          }
+        },
+        {
+          "id": "dont_know",
+          "label": {
+            "en": "I don't know",
+            "th": ""
+          }
+        }
       ]
     },
     {
       "id": "places",
-      "label": {"en": "Places", "th": ""},
+      "label": {
+        "en": "Places",
+        "th": ""
+      },
       "words": [
-        {"id": "home", "label": {"en": "Home", "th": ""}},
-        {"id": "bed", "label": {"en": "Bed", "th": ""}},
-        {"id": "chair", "label": {"en": "Chair", "th": ""}},
-        {"id": "outside", "label": {"en": "Outside", "th": ""}},
-        {"id": "bathroom", "label": {"en": "Bathroom", "th": ""}},
-        {"id": "hospital", "label": {"en": "Hospital", "th": ""}},
-        {"id": "window", "label": {"en": "Window", "th": ""}},
-        {"id": "tv", "label": {"en": "Television", "th": ""}}
+        {
+          "id": "home",
+          "label": {
+            "en": "Home",
+            "th": ""
+          }
+        },
+        {
+          "id": "bed",
+          "label": {
+            "en": "Bed",
+            "th": ""
+          }
+        },
+        {
+          "id": "chair",
+          "label": {
+            "en": "Chair",
+            "th": ""
+          }
+        },
+        {
+          "id": "outside",
+          "label": {
+            "en": "Outside",
+            "th": ""
+          }
+        },
+        {
+          "id": "bathroom",
+          "label": {
+            "en": "Bathroom",
+            "th": ""
+          }
+        },
+        {
+          "id": "hospital",
+          "label": {
+            "en": "Hospital",
+            "th": ""
+          }
+        },
+        {
+          "id": "window",
+          "label": {
+            "en": "Window",
+            "th": ""
+          }
+        },
+        {
+          "id": "tv",
+          "label": {
+            "en": "Television",
+            "th": ""
+          }
+        }
       ]
     },
     {
       "id": "actions",
-      "label": {"en": "Actions", "th": ""},
+      "label": {
+        "en": "Actions",
+        "th": ""
+      },
       "words": [
-        {"id": "come", "label": {"en": "Come here", "th": ""}},
-        {"id": "go", "label": {"en": "Go", "th": ""}},
-        {"id": "sit", "label": {"en": "Sit up", "th": ""}},
-        {"id": "lie_down", "label": {"en": "Lie down", "th": ""}},
-        {"id": "turn_me", "label": {"en": "Turn me", "th": ""}},
-        {"id": "light_on", "label": {"en": "Lights on", "th": ""}},
-        {"id": "light_off", "label": {"en": "Lights off", "th": ""}},
-        {"id": "listen", "label": {"en": "Listen", "th": ""}}
+        {
+          "id": "come",
+          "label": {
+            "en": "Come here",
+            "th": ""
+          }
+        },
+        {
+          "id": "go",
+          "label": {
+            "en": "Go",
+            "th": ""
+          }
+        },
+        {
+          "id": "sit",
+          "label": {
+            "en": "Sit up",
+            "th": ""
+          }
+        },
+        {
+          "id": "lie_down",
+          "label": {
+            "en": "Lie down",
+            "th": ""
+          }
+        },
+        {
+          "id": "turn_me",
+          "label": {
+            "en": "Turn me",
+            "th": ""
+          }
+        },
+        {
+          "id": "light_on",
+          "label": {
+            "en": "Lights on",
+            "th": ""
+          }
+        },
+        {
+          "id": "light_off",
+          "label": {
+            "en": "Lights off",
+            "th": ""
+          }
+        },
+        {
+          "id": "listen",
+          "label": {
+            "en": "Listen",
+            "th": ""
+          }
+        }
       ]
     }
   ]

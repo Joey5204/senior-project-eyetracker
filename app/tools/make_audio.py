@@ -1,6 +1,6 @@
 """Generate one audio clip per vocabulary word, so the device never needs internet to speak.
 
-Run this once on your laptop (it needs internet while generating), then commit the
+Run this once on your machine (it needs internet while generating), then commit the
 resulting files in app/static/audio/. The Pi only plays the saved files.
 
     pip install gTTS
@@ -41,6 +41,16 @@ def main():
                 if path.exists() and not args.force:
                     skipped += 1
                     continue
+                path.parent.mkdir(parents=True, exist_ok=True)
+                gTTS(text=text, lang=lang).save(str(path))
+                print("wrote", path.relative_to(APP_DIR))
+                made += 1
+    # Phrases of the app itself (the Help button) are saved as ui_<name>.mp3
+    for key in ("help_phrase",):
+        for lang in vocab["languages"]:
+            text = (vocab["ui"].get(key, {}).get(lang) or "").strip()
+            path = OUT / lang / f"ui_{key.replace('_phrase', '')}.mp3"
+            if text and (args.force or not path.exists()):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 gTTS(text=text, lang=lang).save(str(path))
                 print("wrote", path.relative_to(APP_DIR))

@@ -1,8 +1,8 @@
 # Eye Communicator (web app)
 
-Flask server + browser UI. The patient looks at large tiles; staying on a tile for about 1 second
-selects it, and the word is spoken from a saved audio clip. Everything runs locally, so no internet is
-needed once the audio clips exist.
+Flask server + browser UI. The patient looks at large boxes; looking at a box long enough selects it,
+and the word is spoken from a saved audio clip. Communication runs locally, so no internet is needed
+once the audio clips exist. Only the video panel needs internet.
 
 ```
 tracker (Orlosky) --> gaze_vector.txt --> server.py --SSE--> browser UI --> speaker
@@ -19,18 +19,74 @@ python app/server.py
 ```
 
 Open http://localhost:5000, click once (this lets the browser play audio), then use the mouse:
-hover over a tile for 1 second, or click it.
+hover over a box until its ring fills (3 s for a category, 5 s for a word), or click it.
 
-### Try gaze mode with no glasses
-
-In a second terminal:
+## The screen
 
 ```
-python app/tools/simulate_gaze.py --hold 0.2 0.3
+[ sentence so far ............ ][ Speak ][ Clear ][ I need help ]
+[ Categories ]  [  video (YouTube)  ]  [ Words ]
+[  (all 6)   ]  [ title            ]  [ 4 + More ]
+[            ]  [ <<   play/pause  >> ] [         ]
 ```
 
-Then press **G** in the browser to switch to gaze mode. The cyan dot is the "gaze" and it selects
-whatever tile it rests on. (The simulator sends screen positions directly, so it cannot be calibrated.)
+- **Left:** all categories. The chosen one is outlined. **Right:** its words, 4 at a time. **More**
+  shows the next 4 (and wraps around). The category stays open after a word, so several words from
+  the same category can be said in a row.
+- **Top:** the sentence being built, **Speak** (says the whole sentence), **Clear**, and **I need
+  help**. Help shows a red full-screen alert, pauses the video and says "I need help. Please come
+  here." again every 9 seconds until it is cancelled (look at *Cancel* for 3 s, or press **Esc**).
+- **Middle:** a 16:9 YouTube video with your own big buttons: previous video, play/pause, next video,
+  and a second row with **Quieter**, **Mute** (it also shows the volume as a percentage and a bar) and **Louder**.
+  Choose the videos with **V** (see Video panel). Speaking lowers the video volume until it has finished.
+
+### How selecting works (dwell rules)
+
+Each box has its **own** look timer. Looking away *pauses* it (a dim ring shows the progress is kept);
+it is forgotten only after the box has not been looked at for **15 seconds**. Selecting anything
+clears the progress of all the other boxes, and the pointer must leave the box before it can fire
+again. Times are in `vocab.json` under `"dwell"` (milliseconds):
+
+| Box | Time | Why |
+|-----|------|-----|
+| word | 5000 | a wrong word is costly |
+| category | 3000 | |
+| nav (More) | 1500 | a mistake costs nothing, just look again |
+| speak / clear / help | 3000 | accidental use is annoying |
+| video buttons, mute | 1500 | easy to undo |
+| volume (Quieter / Louder) | 1500, then every 600 | **hold**: keep looking and it keeps stepping 10% (`volume_repeat_ms`) |
+| `memory_ms` | 15000 | how long unfinished progress is kept |
+| `words_per_page` | 4 | |
+
+For quick tests, `?dwell=800` sets every box to 800 ms and `?memory=3000` sets the memory time, `?repeat=300` the volume repeat speed.
+
+### Volume
+
+The level is the app's own (0 to 100 in steps of 10), remembered in the browser, and applied to the
+video player. At 0% the player is muted. Louder also un-mutes. If the playback speed ever changes
+(a YouTube shortcut), the app sets it back to normal. While the app is speaking, the video is lowered to at most 15%
+and then returns to the chosen level.
+
+### Video panel
+
+Uses YouTube's embedded player, so it works from `http://localhost:5000` but needs internet.
+Without internet the panel says so and everything else keeps working.
+
+**Choosing the videos (no file editing):** a caregiver presses **V** (or clicks *Videos (V)* at the
+bottom), pastes a YouTube **playlist** link and presses Save. The video panel switches to that
+playlist right away (the page does not reload). Adding or removing videos is then done on YouTube itself. Notes:
+- The playlist must be **Unlisted or Public** (private ones cannot be embedded). YouTube Mixes
+  (ids starting `RD`), Watch later and Liked videos do not work; the app says so.
+- A single video link works too, and *Use the built-in video* goes back to the default.
+- The choice is saved by the server in `app/settings.json` (created automatically, safe to delete,
+  not for git), so it is the same on every screen that opens the app.
+- **Previous / Next** go through the playlist (it loops). With a single video they restart it.
+- The video's owner must allow embedding; a video that cannot play is skipped, and the panel shows
+  YouTube's error number. If the panel only says "YouTube is not answering", the playlist link is
+  usually wrong or private; press **V** and try another.
+- Looking cannot click inside the video, which is why the controls are separate boxes. Ads that
+  YouTube inserts cannot be skipped by gaze; a caregiver can click them with the mouse. After
+  clicking inside the video, keyboard shortcuts (G, C, ...) stop working until you click the page.
 
 ## Test with the real tracker
 
@@ -150,20 +206,22 @@ python app\server.py --gaze-file gaze_vector.txt --screen-width-cm 34 --distance
 |-----|--------|
 | G | switch mouse / gaze input |
 | C | calibrate (9 dots) |
+| V | choose the videos (caregiver) |
 | Space / R | during calibration: capture or accept / redo the dot |
 | 1-9 | on the result screen: redo that dot |
 | Esc | cancel calibration |
 | L | switch language (shown only once Thai labels exist) |
 | F | fullscreen |
 
-URL options: `?mode=gaze`, `?dwell=1500` (ms), `?lang=th`, `?nostart=1`.
+URL options: `?mode=gaze`, `?dwell=1500` (ms, all boxes), `?memory=3000` (ms), `?lang=th`, `?nostart=1`.
 
 ## Files
 
 | Path | Purpose |
 |------|---------|
-| `server.py` | Flask server: `/api/gaze` (POST from tracker), `/api/stream` (SSE to browser), `/api/calibration` (GET/POST/DELETE), `/api/vocab` |
-| `vocab.json` | Categories, words, UI text, dwell time. Edit this to change the vocabulary |
+| `server.py` | Flask server: `/api/gaze` (POST from tracker), `/api/stream` (SSE to browser), `/api/calibration` (GET/POST/DELETE), `/api/vocab`, `/api/video-source` |
+| `vocab.json` | Categories, words, UI text, dwell times. Edit this to change the vocabulary |
+| `settings.json` | Chosen video playlist (created by the app, do not commit) |
 | `static/` | `index.html`, `style.css`, `app.js` (no external libraries, works offline) |
 | `static/audio/<lang>/<id>.mp3` | One clip per word |
 | `calibration.json` | Saved calibration (created by the app, do not commit) |
@@ -191,6 +249,8 @@ you generate anything. For the real device, generate and commit the clips:
 pip install gTTS
 python app/tools/make_audio.py
 ```
+
+The Help phrase is saved as `ui_help.mp3` by the same script.
 
 You can replace any clip with a recording of a family member's voice (same file name).
 

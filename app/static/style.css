@@ -105,25 +105,166 @@ body.gaze * { cursor: none !important; }
 
 .target.dwelling::after { opacity: 1; }
 
-/* ---- grid of tiles ---- */
-#grid {
+/* ---- stage: categories | video | words ---- */
+#stage {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-auto-rows: 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr) minmax(0, 1fr);
+  gap: var(--gap);
+  min-height: 0;
+}
+
+#cats, #words {
+  display: flex;
+  flex-direction: column;
   gap: var(--gap);
   min-height: 0;
 }
 
 .tile {
-  font-size: clamp(26px, 4.2vw, 58px);
+  flex: 1 1 0;
+  min-height: 0;
+  font-size: clamp(20px, 2.8vw, 44px);
   font-weight: 700;
-  padding: 12px;
+  padding: 8px 12px;
   text-align: center;
   line-height: 1.15;
 }
 
+.slot { flex: 1 1 0; min-height: 0; }
+
+.hint-col {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 16px;
+  font-size: clamp(18px, 2.2vw, 32px);
+  color: var(--muted);
+  border: 3px dashed #2a3446;
+  border-radius: 18px;
+}
+
 .tile.cat { box-shadow: inset 0 -10px 0 hsl(var(--hue), 70%, 55%); }
-.tile.back { background: #2a1f24; color: #ffb3c0; }
+.tile.cat.current { outline: 5px solid var(--accent); outline-offset: -5px; background: #243044; }
+.tile.more { background: #2a3447; font-size: clamp(18px, 2.2vw, 34px); }
+
+/* a ring that is only remembered (looked away) is dimmer than one being looked at */
+.target.kept::after { opacity: 0.5; }
+
+/* ---- middle: video + its controls ---- */
+#center {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-height: 0;
+  min-width: 0;
+  container-type: size; /* lets the video size itself from the space available */
+}
+
+#video-title {
+  flex: none;
+  min-height: 1.4em;
+  font-size: clamp(14px, 1.6vw, 22px);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Always 16:9: as wide as the column allows, but never so tall that the two rows of
+   controls below (at least 70px each) no longer fit. */
+#video-box {
+  position: relative;
+  flex: none;
+  align-self: center;
+  width: min(100cqw, calc((100cqh - 1.4em - 140px - 3 * var(--gap)) * 16 / 9));
+  aspect-ratio: 16 / 9;
+  background: #05070a;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+#video-box iframe, #yt {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+#video-msg {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  font-size: clamp(16px, 2vw, 28px);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* two rows of three big boxes fill whatever height is left under the video */
+#video-controls {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: var(--gap);
+}
+
+.vbtn {
+  min-height: 0;
+  font-size: clamp(22px, 3vw, 46px);
+  font-weight: 700;
+}
+
+#v-mute {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+#vol-label { font-size: clamp(16px, 2.2vw, 32px); }
+#vol-bar {
+  display: block;
+  width: 78%;
+  height: clamp(10px, 1.6vh, 18px);
+  background: #0f141d;
+  border-radius: 999px;
+  overflow: hidden;
+}
+#vol-bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 999px; }
+#v-mute.muted #vol-bar i { background: #6b7688; }
+#v-mute.muted #vol-label { color: #f87171; }
+
+/* ---- help ---- */
+.target.bar-btn.help { background: #7f1d1d; }
+
+#help-alert {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5vh;
+  background: #7f1d1d;
+  animation: helppulse 1.4s ease-in-out infinite;
+}
+#help-alert[hidden] { display: none; }
+#help-text { font-size: clamp(34px, 6vw, 90px); font-weight: 800; text-align: center; }
+#help-cancel { width: min(60vw, 520px); height: 22vh; font-size: clamp(26px, 4vw, 56px); font-weight: 700; }
+
+@keyframes helppulse {
+  0%, 100% { background: #7f1d1d; }
+  50% { background: #b91c1c; }
+}
 
 /* ---- footer / status ---- */
 #status {
@@ -314,3 +455,48 @@ body.gaze * { cursor: none !important; }
 }
 
 #start.hidden { display: none; }
+
+/* ---- caregiver: choose the videos (mouse and keyboard, not for gaze) ---- */
+#video-setup {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 7, 10, 0.88);
+}
+#video-setup[hidden] { display: none; }
+#video-setup .box {
+  width: min(680px, 92vw);
+  padding: 28px;
+  background: #151b27;
+  border: 1px solid #2a3446;
+  border-radius: 16px;
+}
+#video-setup h2 { margin: 0 0 10px; }
+#video-setup p { margin: 0 0 16px; color: var(--muted); line-height: 1.5; }
+#video-url {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  font-size: 16px;
+  color: #e6edf7;
+  background: #0f141d;
+  border: 2px solid #3b475b;
+  border-radius: 10px;
+}
+#video-setup-msg { min-height: 1.6em; margin: 10px 0; }
+#video-setup-msg.bad { color: #f87171; }
+#video-setup-msg.ok { color: var(--ok); }
+#video-setup .row { display: flex; gap: 10px; flex-wrap: wrap; }
+#video-setup button {
+  padding: 10px 18px;
+  font-size: 15px;
+  color: #e6edf7;
+  background: #182030;
+  border: 2px solid #3b475b;
+  border-radius: 10px;
+  cursor: pointer;
+}
+#video-setup button.primary { background: #1d4ed8; border-color: #3b82f6; }
