@@ -500,3 +500,35 @@ body.gaze * { cursor: none !important; }
   cursor: pointer;
 }
 #video-setup button.primary { background: #1d4ed8; border-color: #3b82f6; }
+
+/* ---- calibration: a coloured border around the WHOLE page ----
+   green = steady / good, yellow = so-so, red = shaky / poor, grey = no signal yet */
+#calib::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border: 14px solid #2a3446;
+  transition: border-color 0.2s;
+}
+#calib[data-steady="ok"]::after { border-color: var(--ok); box-shadow: inset 0 0 90px rgba(74, 222, 128, 0.25); }
+#calib[data-steady="warn"]::after { border-color: #fbbf24; box-shadow: inset 0 0 90px rgba(251, 191, 36, 0.25); }
+#calib[data-steady="bad"]::after { border-color: #f87171; box-shadow: inset 0 0 90px rgba(248, 113, 113, 0.28); }
+
+#calib-legend {
+  position: absolute;
+  top: 24px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 14px;
+  color: #9aa7bd;
+  pointer-events: none;
+}
+
+#calib-dot { pointer-events: none; }
+.calib-mark.current { border-style: solid; border-color: #fbbf24; color: #fbbf24; }
+.calib-mark.taken.current { border-color: #fbbf24; }
+#calib-actions button.secondary { background: transparent; font-size: clamp(13px, 1.3vw, 17px); padding: 8px 16px; color: #9aa7bd; }
+#calib-actions { align-items: center; }

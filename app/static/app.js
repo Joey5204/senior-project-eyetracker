@@ -30,6 +30,7 @@
   const cal = {
     active: false, phase: "idle", collecting: false, buffer: [], run: 0,
     asker: null, pending: null, captured: [], recent: [], live: null, liveVec: null,
+    cur: 0, reviewCls: "", resultCls: "",
   };
 
   // ---------- small helpers ----------
@@ -493,6 +494,7 @@
         b.tabIndex = -1;
         b.textContent = o.label;
         if (o.primary) b.className = "primary";
+        else if (o.secondary) b.className = "secondary";
         b.addEventListener("click", () => { b.blur(); done(o.name); });
         box.appendChild(b);
       }
@@ -523,26 +525,45 @@
     };
   }
 
-  // The full aim -> capture -> review loop for one dot. Returns false if cancelled.
-  async function captureDot(i, myRun, total) {
+  // Keys 1-9 jump straight to that dot; B goes one dot back; C starts over. Available at every step.
+  const jumpKey = (k) => (/^[1-9]$/.test(k) ? "goto:" + (Number(k) - 1) : null);
+  const navOptions = (i) => {
+    const o = [];
+    if (i > 0) o.push({ name: "back", label: "Back (B)", keys: ["b"], secondary: true });
+    o.push({ name: "restart", label: "Restart (C)", keys: ["c"], secondary: true });
+    return o;
+  };
+
+  // Turns a navigation answer into the object runCalibration understands.
+  function navResult(a) {
+    if (a === "back") return { back: true };
+    if (a === "restart") return { restart: true };
+    if (typeof a === "string" && a.startsWith("goto:")) return { goto: Number(a.slice(5)) };
+    return null;
+  }
+
+  // The aim -> capture -> review loop for one dot.
+  // Returns true (accepted), null (cancelled) or {back} / {restart} / {goto: n} when the user navigated away.
+  async function captureDot(i, myRun) {
     const label = `Dot ${i + 1} of ${CAL_POINTS.length}`;
+    cal.cur = i;
     for (;;) {
       calDot(CAL_POINTS[i], "");
-      calMsg(`${label}: look at the dot, hold still, then press Capture.`);
-      $("#calib-marks").textContent = "";
+      calMsg(`${label}: look at the dot, hold still, then press Capture. ` +
+        "(Press 1-9 or click a circle to jump to another dot.)");
       drawMarks(false);
-      cal.phase = "aim";
-      $("#calib").dataset.phase = "aim";
-      if ((await ask(myRun, [{ name: "capture", label: "Capture (Space)", keys: [" ", "enter"], primary: true }])) === null) return false;
+      setPhase("aim");
+      let a = await ask(myRun, [{ name: "capture", label: "Capture (Space)", keys: [" ", "enter"], primary: true },
+                                ...navOptions(i)], jumpKey);
+      if (a === null) return null;
+      if (a !== "capture") { const nav = navResult(a); if (nav.goto === i) continue; return nav; }
 
-      cal.phase = "capture";
-      $("#calib").dataset.phase = "capture";
+      setPhase("capture");
       calMsg(`${label}: measuring... keep looking at the dot.`);
       const m = await measure(i, myRun);
-      if (!m || cal.run !== myRun) return false;
+      if (!m || cal.run !== myRun) return null;
 
-      cal.phase = "review";
-      $("#calib").dataset.phase = "review";
+      setPhase("review");
       calDot(CAL_POINTS[i], "");
       const enough = m.n >= CAL_MIN_SAMPLES;
       const options = [];
@@ -557,40 +578,57 @@
           "Accept it if you were looking at the dot.", cls);
         options.push({ name: "accept", label: "Accept (Space)", keys: [" ", "enter"], primary: cls !== "bad" });
       }
+      cal.reviewCls = cls; // colours the frame around the whole page
       options.push({ name: "redo", label: "Redo (R)", keys: ["r"], primary: !enough });
-      const a = await ask(myRun, options);
-      if (a === null) return false;
+      a = await ask(myRun, [...options, ...navOptions(i)], jumpKey);
+      if (a === null) return null;
       if (a === "accept") {
         cal.captured[i] = { target: CAL_POINTS[i], raw: m.raw, n: m.n, spread: m.spread };
         return true;
       }
+      if (a !== "redo") { const nav = navResult(a); if (nav.goto !== i) return nav; }
       // redo: loop and show the dot again
     }
   }
 
-  // Draw the numbered circles. With a result, colour them by how well each dot was predicted.
+  function setPhase(p) {
+    cal.phase = p;
+    $("#calib").dataset.phase = p;
+  }
+
+  // Draw the numbered circles. Before the result they are the 9 dots (filled once captured) and can be
+  // clicked to jump to that dot. With a result, they are coloured by how well each dot was predicted.
   function drawMarks(result) {
     const box = $("#calib-marks");
     box.textContent = "";
     CAL_POINTS.forEach((p, i) => {
-      if (!result && !cal.captured[i]) return;
       const m = document.createElement("div");
       m.className = "calib-mark";
+      m.dataset.dot = String(i);
       if (result) {
         const e = result.per_point_loo_pct && result.per_point_loo_pct[i];
         if (typeof e === "number") m.classList.add(e <= 5 ? "ok" : e <= 10 ? "warn" : "bad");
         m.title = "Click to redo this dot";
-        m.dataset.dot = String(i);
-        m.addEventListener("click", () => cal.asker && cal.asker.done("dot:" + i));
       } else {
-        m.classList.add("taken");
+        if (cal.captured[i]) m.classList.add("taken");
+        if (i === cal.cur) m.classList.add("current");
+        m.title = cal.captured[i] ? "Captured. Click to redo this dot" : "Click to go to this dot";
       }
+      m.addEventListener("click", () => cal.asker && cal.asker.done("goto:" + i));
       m.textContent = String(i + 1);
       m.style.left = p[0] * 100 + "%";
       m.style.top = p[1] * 100 + "%";
       box.appendChild(m);
     });
   }
+
+  const nextMissing = (from) => {
+    for (let k = 1; k <= CAL_POINTS.length; k++) {
+      const j = (from + k) % CAL_POINTS.length;
+      if (!cal.captured[j]) return j;
+    }
+    return -1;
+  };
 
   async function runCalibration() {
     if (cal.active) return;
@@ -600,6 +638,9 @@
     cal.collecting = false;
     cal.pending = null;
     cal.captured = CAL_POINTS.map(() => null);
+    cal.cur = 0;
+    cal.reviewCls = "";
+    cal.resultCls = "";
     cal.recent = [];
     cal.live = null;
     cal.liveVec = null;
@@ -610,28 +651,38 @@
     $("#calib-dot").hidden = false;
     $("#calib").hidden = false;
 
-    for (let i = 0; i < CAL_POINTS.length; i++) {
-      if (!(await captureDot(i, myRun))) return;
-    }
-    // All nine accepted: fit, then let the user redo any single dot.
+    // One loop for everything: capture the current dot, then go where the user asked
+    // (back, a chosen dot, start over) or to the next dot that is still missing.
+    // When all 9 are captured it fits and shows the result, where any dot can be redone.
+    let cur = 0;
+    let editing = false; // true while one dot is redone from the result screen
     for (;;) {
-      const res = await fitNow(myRun);
-      if (res === undefined) return; // cancelled
-      const next = await showResult(res, myRun);
-      if (next === null) return;
-      if (next === "all") return restartCalibration();
-      if (next === "finish") return endCalibration();
-      if (typeof next === "number") {
-        $("#calib-dot").hidden = false;
-        cal.phase = "aim";
-        if (!(await captureDot(next, myRun))) return;
+      if (!editing && cal.captured.every(Boolean)) {
+        const res = await fitNow(myRun);
+        if (res === undefined) return; // cancelled
+        const next = await showResult(res, myRun);
+        if (next === null) return;
+        if (next === "finish") return endCalibration();
+        if (next === "all") { cal.captured = CAL_POINTS.map(() => null); cur = 0; $("#calib-dot").hidden = false; continue; }
+        if (typeof next === "number") { cur = next; editing = true; $("#calib-dot").hidden = false; }
+        continue;
+      }
+      const r = await captureDot(cur, myRun);
+      if (r === null) return;
+      if (r === true) {
+        editing = false;
+        const n = nextMissing(cur);
+        if (n >= 0) cur = n;       // otherwise everything is captured: the top of the loop fits it
+      } else if (r.restart) {
+        cal.captured = CAL_POINTS.map(() => null);
+        cur = 0;
+        editing = false;
+      } else if (r.back) {
+        cur = Math.max(0, cur - 1);
+      } else if (typeof r.goto === "number") {
+        cur = r.goto;
       }
     }
-  }
-
-  function restartCalibration() {
-    endCalibration();
-    runCalibration();
   }
 
   // POST the points. Returns the result, {error} on a failed fit, or undefined if cancelled.
@@ -655,12 +706,13 @@
 
   // Result screen. Returns "finish", "all", a dot index to redo, or null if cancelled.
   async function showResult(res, myRun) {
-    cal.phase = "done"; // the blue gaze cursor comes back so the user can compare it to the circles
-    $("#calib").dataset.phase = "done";
+    setPhase("done"); // the blue gaze cursor comes back so the user can compare it to the circles
+    cal.cur = -1;
     refreshCalibStatus();
     const keyDot = (k) => (/^[1-9]$/.test(k) ? "dot:" + (Number(k) - 1) : null);
     let a;
     if (res.error) {
+      cal.resultCls = "bad";
       calMsg(`${res.error} Press C to start over.`, "bad");
       drawMarks(false);
       a = await ask(myRun, [
@@ -671,6 +723,7 @@
       const q = res.loo_mean_pct;
       const verdict = q <= 5 ? ["Good", "ok"] : q <= 10 ? ["Usable with large tiles", "warn"] : ["Poor", "bad"];
       const deg = typeof res.loo_mean_deg === "number" ? ` (about ${res.loo_mean_deg.toFixed(1)} degrees)` : "";
+      cal.resultCls = verdict[1];
       calMsg(`${verdict[0]}. Estimated error ${q.toFixed(1)}% of the screen width${deg}. ` +
         "Click a circle (or press 1-9) to redo that dot. Blue cursor = where you look now.", verdict[1]);
       drawMarks(res);
@@ -679,7 +732,8 @@
         { name: "all", label: "Redo all (C)", keys: ["c"] },
       ], keyDot);
     }
-    if (a && a.startsWith("dot:")) return Number(a.slice(4));
+    const m = typeof a === "string" && a.match(/^(?:dot|goto):(\d)$/); // a key (1-9) or a click on a circle
+    if (m) return Number(m[1]);
     return a;
   }
 
@@ -724,7 +778,15 @@
     ];
     const ro = $("#calib-readout");
     ro.textContent = lines.join("\n");
-    ro.dataset.steady = steady === null ? "" : steadyClass(steady);
+    const liveCls = steady === null ? "" : steadyClass(steady);
+    ro.dataset.steady = liveCls;
+    // The border around the whole page: how steady the gaze is right now while aiming,
+    // how steady the capture was while reviewing, and the overall quality on the result screen.
+    const frameCls = cal.phase === "review" ? cal.reviewCls : cal.phase === "done" ? cal.resultCls : fresh ? liveCls : "";
+    $("#calib").dataset.steady = frameCls;
+    $("#calib-legend").textContent = cal.phase === "review" ? "Border: how steady that capture was"
+      : cal.phase === "done" ? "Border: overall calibration quality"
+      : "Border: how steady your gaze is right now (green = good moment to capture)";
     drawPlot(rec, fresh, got);
   }
 

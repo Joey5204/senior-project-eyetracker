@@ -138,15 +138,21 @@ Calibration teaches the app how *your* eye angles map to *your* screen.
    (or click *Capture*). The app measures for about 1.3 seconds, then shows how steady your gaze was
    (green: under 1 degree, yellow: up to 2.5, red: more). Press **Space** to *Accept* if you were
    really looking at the dot, or **R** to *Redo* it. If the tracker lost your eye (too few samples),
-   only Redo is offered.
-5. While you do this, a panel at the bottom shows the live gaze vector (x, y, z), the yaw and pitch in
+   only Redo is offered. You never have to go in order or finish all 9 first: all 9 numbered circles
+   are always on screen, and you can **click a circle or press 1-9** to jump to that dot (a captured one
+   is replaced when you accept a new capture), press **B** to go one dot back, or **C** to **restart**
+   from dot 1. After you accept a dot, the app moves on to the next dot that is still missing.
+5. The **border around the whole page** tells you how things are going: while aiming it shows how
+   steady your gaze is right now (green: a good moment to press Capture, yellow: so-so, red: shaky,
+   grey: no signal); after a capture it shows how steady that capture was; on the result screen it shows
+   the overall quality. While you do this, a panel at the bottom shows the live gaze vector (x, y, z), the yaw and pitch in
    degrees, samples per second and steadiness, plus a plot of the raw angles: numbered blue points are
    the dots you accepted, the ring is where your eye is now. Dots that are far apart on screen should
    be far apart in the plot; if they bunch together, the tracker is not following your eye well.
 6. After the 9th dot the result screen shows the estimated error and the 9 circles coloured by how well
    each dot fits (green good, yellow so-so, red poor). Click a circle, or press its number **1-9**, to
    redo just that dot. The blue cursor shows where the app thinks you are looking. **Enter** finishes,
-   **C** redoes everything, **Esc** cancels at any time. A red circle is not always the culprit: one bad
+   **C** redoes everything, **Esc** cancels at any time. (The same keys work during the 9 dots.) A red circle is not always the culprit: one bad
    dot also drags the fit of its neighbours, so redo the one that looked shaky or that you doubt first.
 
 | Estimated error | Meaning |
