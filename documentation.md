@@ -47,9 +47,11 @@ How the Orlosky 3D tracker works:
 - **Fix (Worked):** run the app with `--gaze-file gaze_vector.txt` (documented in `app/README.md`).
 
 ### Frozen or stale gaze signal (earlier)
-- **Cause:** the bridge between the file and the app only published a new position when the value changed,
-  so a steady eye looked like a dead signal.
-- **Fix (Worked):** publish on a timer as well as on change.
+- **Cause:** the bridge between the file and the app only republished when the value changed, so a steady
+  eye looked like a dead signal.
+- **Fix (Worked):** it now compares the file's modified time as well as its text, so a steady eye (same
+  values, new write) still counts as live. If the tracker stops writing, nothing is published and the page
+  shows "no signal".
 
 ### "area was 0" printed in the tracker window (earlier)
 - Means the ellipse check found nothing for that frame (pupil hidden, blink). Normal when occasional; only
@@ -78,7 +80,7 @@ How the Orlosky 3D tracker works:
 - Each dot waits for the person, shows how steady the capture was, and offers Accept or Redo. A live panel
   shows the gaze vector, angles, steadiness, and a plot of the raw angles.
 - **Result (Partly):** easier to follow. The remaining "poor" results looked like tracker-input problems
-  (see section 7), not calibration problems.
+  (see Hardware finding: IR LED reflections), not calibration problems.
 
 ### 4. Dwell (selection) rules
 - **Problem:** a fixed 1 s dwell was too fast and reset whenever the eye drifted.
