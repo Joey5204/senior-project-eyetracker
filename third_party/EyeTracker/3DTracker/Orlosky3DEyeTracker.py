@@ -25,6 +25,12 @@ pupil_confidence_threshold_sphere = 0.65  # Minimum pupil confidence for determi
 intersection_ray_count = 4  # Rays sampled for each intersection estimate
 minimum_intersection_angle_degrees = 8  # Minimum angle between sampled rays
 last_tracking_result = None  # Store the latest tracker output
+# --- Edge fallback: when the normal outline is poor (reflection over the pupil), fit only the real pupil edge ---
+EDGE_FALLBACK_ENABLED = True
+EDGE_FALLBACK_BELOW = 0.75   # only used when the normal confidence is under this
+EDGE_MIN_GRADIENT = 4.0      # outline points must sit on an edge at least this sharp
+EDGE_BRIGHT = 140            # outline points next to pixels brighter than this (reflections) are ignored
+EDGE_MIN_POINTS = 25         # need at least this many good outline points
 
 capture_stuck_ellipses = False     # toggled with 'e'
 stuck_ellipses = []                # saved pupil ellipses
@@ -67,6 +73,33 @@ def apply_binary_threshold(image, darkestPixelValue, addedThreshold):
     threshold = darkestPixelValue + addedThreshold
     _, thresholded_image = cv2.threshold(image, threshold, 255, cv2.THRESH_BINARY_INV)
     return thresholded_image
+
+def edge_fallback_fit(contours, gray):
+    # Fit the pupil ellipse using only outline points that lie on a sharp dark-to-light edge and are not
+    # next to a bright reflection. Returns (ellipse, confidence) or None.
+    gb = cv2.GaussianBlur(gray, (0, 0), 2.0).astype(np.float32)
+    gx = cv2.Sobel(gb, cv2.CV_32F, 1, 0, ksize=3) / 8
+    gy = cv2.Sobel(gb, cv2.CV_32F, 0, 1, ksize=3) / 8
+    edge = cv2.dilate(np.sqrt(gx * gx + gy * gy), np.ones((9, 9), np.uint8))
+    bright = cv2.dilate((gray > EDGE_BRIGHT).astype(np.uint8), np.ones((13, 13), np.uint8))
+    best = None
+    for c in contours:
+        pts = c.reshape(-1, 2)
+        keep = (edge[pts[:, 1], pts[:, 0]] > EDGE_MIN_GRADIENT) & (bright[pts[:, 1], pts[:, 0]] == 0)
+        if keep.sum() < EDGE_MIN_POINTS:
+            continue
+        good = pts[keep]
+        (cx, cy), (w, h), ang = cv2.fitEllipse(good.reshape(-1, 1, 2).astype(np.int32))
+        if min(w, h) < 20 or max(w, h) > 220 or max(w, h) / max(min(w, h), 1) > 2.0:
+            continue
+        a = math.radians(ang)
+        dx, dy = good[:, 0] - cx, good[:, 1] - cy
+        xr, yr = dx * math.cos(a) + dy * math.sin(a), -dx * math.sin(a) + dy * math.cos(a)
+        r = np.sqrt((xr / (w / 2)) ** 2 + (yr / (h / 2)) ** 2)
+        inliers = int(np.sum(np.abs(r - 1) * (w + h) / 4 < 3))
+        if best is None or inliers > best[0]:
+            best = (inliers, ((cx, cy), (w, h), ang), inliers / len(pts))
+    return None if best is None else (best[1], best[2])
 
 # Finds a square area of dark pixels in the image
 def get_darkest_area(image):
@@ -342,6 +375,7 @@ def process_frames(thresholded_image_strict, thresholded_image_medium, threshold
     final_goodness = 0
     best_ratio_under_ellipse = 0
     best_center_x, best_center_y = None, None
+    candidate_contours = []
 
     # iterate through binary images and see which fits the ellipse best
     for i in range(1,4):
@@ -385,6 +419,8 @@ def process_frames(thresholded_image_strict, thresholded_image_medium, threshold
                 * total_pixels[1]
             )
 
+            candidate_contours.append(reduced_contours[0])
+
             if final_goodness > 0 and final_goodness > goodness:
                 goodness = final_goodness
                 best_ratio_under_ellipse = total_pixels[1]
@@ -414,6 +450,13 @@ def process_frames(thresholded_image_strict, thresholded_image_medium, threshold
             if len(ray_lines) > max_rays:
                 num_to_remove = len(ray_lines) - max_rays
                 ray_lines = ray_lines[num_to_remove:]  # Keep only the last `max_rays` elements
+
+    # when the normal outline is poor, fit only the real pupil edge instead
+    if EDGE_FALLBACK_ENABLED and best_ratio_under_ellipse < EDGE_FALLBACK_BELOW and candidate_contours:
+        fallback = edge_fallback_fit(candidate_contours, gray_frame)
+        if fallback is not None:
+            final_rotated_rect, best_ratio_under_ellipse = fallback
+            center_x, center_y = int(final_rotated_rect[0][0]), int(final_rotated_rect[0][1])
 
     model_center_average = (320,240)
 
