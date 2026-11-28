@@ -24,17 +24,17 @@ hover over a box until its ring fills (3 s for a category, 5 s for a word), or c
 ## The screen
 
 ```
-[ sentence so far ............ ][ Speak ][ Clear ][ I need help ]
+[ sentence so far ............ ][ Speak ][ Clear ][ Emergency ]
 [ Categories ]  [  video (YouTube)  ]  [ Words ]
-[  (all 6)   ]  [ title            ]  [ 4 + More ]
+[ 4 + More   ]  [ title            ]  [ 4 + More ]
 [            ]  [ <<   play/pause  >> ] [         ]
 ```
 
-- **Left:** all categories. The chosen one is outlined. **Right:** its words, 4 at a time. **More**
-  shows the next 4 (and wraps around). The category stays open after a word, so several words from
+- **Left:** the categories, 4 at a time. **More** shows the next 4 (and wraps around), so the boxes stay
+  big. The chosen one is outlined. **Right:** its words, 4 at a time, with its own **More**. The category stays open after a word, so several words from
   the same category can be said in a row.
-- **Top:** the sentence being built, **Speak** (says the whole sentence), **Clear**, and **I need
-  help**. Help shows a red full-screen alert, pauses the video and says "I need help. Please come
+- **Top:** the sentence being built, **Speak** (says the whole sentence), **Clear**, and **Emergency**.
+  Emergency shows a red full-screen alert, pauses the video and says "Emergency. Please come
   here." again every 9 seconds until it is cancelled (look at *Cancel* for 3 s, or press **Esc**).
 - **Middle:** a 16:9 YouTube video with your own big buttons: previous video, play/pause, next video,
   and a second row with **Quieter**, **Mute** (it also shows the volume as a percentage and a bar) and **Louder**.
@@ -57,6 +57,7 @@ again. Times are in `vocab.json` under `"dwell"` (milliseconds):
 | volume (Quieter / Louder) | 1500, then every 600 | **hold**: keep looking and it keeps stepping 10% (`volume_repeat_ms`) |
 | `memory_ms` | 15000 | how long unfinished progress is kept |
 | `words_per_page` | 4 | |
+| `categories_per_page` | 4 | categories shown at once on the left, plus a **More** box. Use 0 to show them all |
 
 For quick tests, `?dwell=800` sets every box to 800 ms and `?memory=3000` sets the memory time, `?repeat=300` the volume repeat speed.
 

@@ -12,6 +12,7 @@
     lang: "en",
     catId: null, // chosen category (stays chosen after a word is picked)
     page: 0,     // page of words shown for that category
+    catPage: 0,  // page of categories shown on the left
     sentence: [],
     mode: "mouse", // or "gaze"
     pointer: { x: -1, y: -1 },
@@ -95,16 +96,34 @@
 
   const wordsPerPage = () => state.vocab.dwell.words_per_page || 4;
 
+  // categories_per_page (in vocab.json) limits how many categories show at once so the boxes stay big;
+  // a "More" box then flips to the next group. 0 or missing = show them all.
+  const catsPerPage = () => state.vocab.dwell.categories_per_page || 0;
+
   function renderCats() {
     const box = $("#cats");
     box.textContent = "";
     const v = state.vocab;
-    v.categories.forEach((c, i) => {
-      const hue = Math.round((i * 360) / v.categories.length);
+    const per = catsPerPage();
+    const paged = per > 0 && v.categories.length > per;
+    const pages = paged ? Math.ceil(v.categories.length / per) : 1;
+    const page = state.catPage % pages;
+    const first = paged ? page * per : 0;
+    const shown = paged ? v.categories.slice(first, first + per) : v.categories;
+    shown.forEach((c, k) => {
+      const hue = Math.round(((first + k) * 360) / v.categories.length); // a category keeps its colour on any page
       const b = makeTile("cat:" + c.id, label(c.label), "cat", "category", () => openCategory(c.id), hue);
       if (c.id === state.catId) b.classList.add("current");
       box.appendChild(b);
     });
+    if (paged) {
+      for (let i = shown.length; i < per; i++) {
+        const d = document.createElement("div");
+        d.className = "slot";
+        box.appendChild(d);
+      }
+      box.appendChild(makeTile("catmore", `${ui("more")}  ${page + 1}/${pages}  \u25B6`, "more", "nav", nextCatPage));
+    }
   }
 
   // Words: a fixed number of slots, so the layout never jumps. The last slot is
@@ -157,6 +176,11 @@
   function nextPage() {
     state.page += 1; // wraps around in renderWords
     renderWords();
+  }
+
+  function nextCatPage() {
+    state.catPage += 1; // wraps around in renderCats
+    renderCats();
   }
 
   function pickWord(w) {

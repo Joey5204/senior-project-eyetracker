@@ -14,7 +14,8 @@
     "memory_ms": 15000,
     "words_per_page": 4,
     "volume": 1500,
-    "volume_repeat_ms": 600
+    "volume_repeat_ms": 600,
+    "categories_per_page": 4
   },
   "ui": {
     "back": {
@@ -38,11 +39,11 @@
       "th": ""
     },
     "help": {
-      "en": "I need help",
+      "en": "Emergency",
       "th": ""
     },
     "help_phrase": {
-      "en": "I need help. Please come here.",
+      "en": "Emergency. Please come here.",
       "th": ""
     },
     "help_banner": {
@@ -133,16 +134,16 @@
           }
         },
         {
-          "id": "toilet",
+          "id": "medicine",
           "label": {
-            "en": "Toilet",
+            "en": "Medicine",
             "th": ""
           }
         },
         {
-          "id": "medicine",
+          "id": "sleep",
           "label": {
-            "en": "Medicine",
+            "en": "Sleep",
             "th": ""
           }
         },
@@ -154,23 +155,44 @@
           }
         },
         {
-          "id": "pain",
+          "id": "blanket",
           "label": {
-            "en": "I am in pain",
+            "en": "Blanket",
             "th": ""
           }
         },
         {
-          "id": "tired",
+          "id": "pillow",
           "label": {
-            "en": "I am tired",
+            "en": "Pillow",
             "th": ""
           }
         },
         {
-          "id": "hot",
+          "id": "wipe_face",
           "label": {
-            "en": "I am hot",
+            "en": "Wipe my face",
+            "th": ""
+          }
+        },
+        {
+          "id": "wash",
+          "label": {
+            "en": "Wash",
+            "th": ""
+          }
+        },
+        {
+          "id": "brush_teeth",
+          "label": {
+            "en": "Brush teeth",
+            "th": ""
+          }
+        },
+        {
+          "id": "fan",
+          "label": {
+            "en": "Fan",
             "th": ""
           }
         }
@@ -233,9 +255,65 @@
           }
         },
         {
+          "id": "hot",
+          "label": {
+            "en": "Hot",
+            "th": ""
+          }
+        },
+        {
           "id": "bored",
           "label": {
             "en": "Bored",
+            "th": ""
+          }
+        },
+        {
+          "id": "pain",
+          "label": {
+            "en": "Pain",
+            "th": ""
+          }
+        },
+        {
+          "id": "tired",
+          "label": {
+            "en": "Tired",
+            "th": ""
+          }
+        },
+        {
+          "id": "miss",
+          "label": {
+            "en": "I miss",
+            "th": ""
+          }
+        },
+        {
+          "id": "worried",
+          "label": {
+            "en": "Worried",
+            "th": ""
+          }
+        },
+        {
+          "id": "lonely",
+          "label": {
+            "en": "Lonely",
+            "th": ""
+          }
+        },
+        {
+          "id": "nauseous",
+          "label": {
+            "en": "Nauseous",
+            "th": ""
+          }
+        },
+        {
+          "id": "itch",
+          "label": {
+            "en": "Itch",
             "th": ""
           }
         }
@@ -270,9 +348,9 @@
           }
         },
         {
-          "id": "friend",
+          "id": "me",
           "label": {
-            "en": "Friend",
+            "en": "Me",
             "th": ""
           }
         },
@@ -291,16 +369,72 @@
           }
         },
         {
-          "id": "child",
+          "id": "friend",
           "label": {
-            "en": "Child",
+            "en": "Friend",
             "th": ""
           }
         },
         {
-          "id": "me",
+          "id": "caregiver",
           "label": {
-            "en": "Me",
+            "en": "Caregiver",
+            "th": ""
+          }
+        },
+        {
+          "id": "son",
+          "label": {
+            "en": "Son",
+            "th": ""
+          }
+        },
+        {
+          "id": "daughter",
+          "label": {
+            "en": "Daughter",
+            "th": ""
+          }
+        },
+        {
+          "id": "husband",
+          "label": {
+            "en": "Husband",
+            "th": ""
+          }
+        },
+        {
+          "id": "wife",
+          "label": {
+            "en": "Wife",
+            "th": ""
+          }
+        },
+        {
+          "id": "brother",
+          "label": {
+            "en": "Brother",
+            "th": ""
+          }
+        },
+        {
+          "id": "sister",
+          "label": {
+            "en": "Sister",
+            "th": ""
+          }
+        },
+        {
+          "id": "grandmother",
+          "label": {
+            "en": "Grandmother",
+            "th": ""
+          }
+        },
+        {
+          "id": "grandfather",
+          "label": {
+            "en": "Grandfather",
             "th": ""
           }
         }
@@ -356,9 +490,9 @@
           }
         },
         {
-          "id": "more",
+          "id": "wait",
           "label": {
-            "en": "More",
+            "en": "Wait",
             "th": ""
           }
         },
@@ -366,6 +500,213 @@
           "id": "dont_know",
           "label": {
             "en": "I don't know",
+            "th": ""
+          }
+        },
+        {
+          "id": "love_you",
+          "label": {
+            "en": "I love you",
+            "th": ""
+          }
+        },
+        {
+          "id": "sorry",
+          "label": {
+            "en": "Sorry",
+            "th": ""
+          }
+        },
+        {
+          "id": "okay",
+          "label": {
+            "en": "Okay",
+            "th": ""
+          }
+        }
+      ]
+    },
+    {
+      "id": "body",
+      "label": {
+        "en": "Body",
+        "th": ""
+      },
+      "words": [
+        {
+          "id": "head",
+          "label": {
+            "en": "Head",
+            "th": ""
+          }
+        },
+        {
+          "id": "chest",
+          "label": {
+            "en": "Chest",
+            "th": ""
+          }
+        },
+        {
+          "id": "stomach",
+          "label": {
+            "en": "Stomach",
+            "th": ""
+          }
+        },
+        {
+          "id": "back",
+          "label": {
+            "en": "Back",
+            "th": ""
+          }
+        },
+        {
+          "id": "arm",
+          "label": {
+            "en": "Arm",
+            "th": ""
+          }
+        },
+        {
+          "id": "hand",
+          "label": {
+            "en": "Hand",
+            "th": ""
+          }
+        },
+        {
+          "id": "leg",
+          "label": {
+            "en": "Leg",
+            "th": ""
+          }
+        },
+        {
+          "id": "foot",
+          "label": {
+            "en": "Foot",
+            "th": ""
+          }
+        },
+        {
+          "id": "neck",
+          "label": {
+            "en": "Neck",
+            "th": ""
+          }
+        },
+        {
+          "id": "throat",
+          "label": {
+            "en": "Throat",
+            "th": ""
+          }
+        },
+        {
+          "id": "eyes",
+          "label": {
+            "en": "Eyes",
+            "th": ""
+          }
+        },
+        {
+          "id": "face",
+          "label": {
+            "en": "Face",
+            "th": ""
+          }
+        },
+        {
+          "id": "ears",
+          "label": {
+            "en": "Ears",
+            "th": ""
+          }
+        },
+        {
+          "id": "mouth",
+          "label": {
+            "en": "Mouth",
+            "th": ""
+          }
+        },
+        {
+          "id": "shoulder",
+          "label": {
+            "en": "Shoulder",
+            "th": ""
+          }
+        },
+        {
+          "id": "hip",
+          "label": {
+            "en": "Hip",
+            "th": ""
+          }
+        }
+      ]
+    },
+    {
+      "id": "directions",
+      "label": {
+        "en": "Directions",
+        "th": ""
+      },
+      "words": [
+        {
+          "id": "left",
+          "label": {
+            "en": "Left",
+            "th": ""
+          }
+        },
+        {
+          "id": "right",
+          "label": {
+            "en": "Right",
+            "th": ""
+          }
+        },
+        {
+          "id": "up",
+          "label": {
+            "en": "Up",
+            "th": ""
+          }
+        },
+        {
+          "id": "down",
+          "label": {
+            "en": "Down",
+            "th": ""
+          }
+        },
+        {
+          "id": "here",
+          "label": {
+            "en": "Here",
+            "th": ""
+          }
+        },
+        {
+          "id": "closer",
+          "label": {
+            "en": "Closer",
+            "th": ""
+          }
+        },
+        {
+          "id": "further",
+          "label": {
+            "en": "Further",
+            "th": ""
+          }
+        },
+        {
+          "id": "middle",
+          "label": {
+            "en": "Middle",
             "th": ""
           }
         }
@@ -378,6 +719,13 @@
         "th": ""
       },
       "words": [
+        {
+          "id": "toilet",
+          "label": {
+            "en": "Toilet",
+            "th": ""
+          }
+        },
         {
           "id": "home",
           "label": {
@@ -400,20 +748,6 @@
           }
         },
         {
-          "id": "outside",
-          "label": {
-            "en": "Outside",
-            "th": ""
-          }
-        },
-        {
-          "id": "bathroom",
-          "label": {
-            "en": "Bathroom",
-            "th": ""
-          }
-        },
-        {
           "id": "hospital",
           "label": {
             "en": "Hospital",
@@ -428,9 +762,16 @@
           }
         },
         {
-          "id": "tv",
+          "id": "garden",
           "label": {
-            "en": "Television",
+            "en": "Garden",
+            "th": ""
+          }
+        },
+        {
+          "id": "living_room",
+          "label": {
+            "en": "Living room",
             "th": ""
           }
         }
@@ -451,23 +792,30 @@
           }
         },
         {
-          "id": "go",
+          "id": "stay",
           "label": {
-            "en": "Go",
+            "en": "Stay with me",
             "th": ""
           }
         },
         {
-          "id": "sit",
+          "id": "bed_up",
           "label": {
-            "en": "Sit up",
+            "en": "Raise the bed",
             "th": ""
           }
         },
         {
-          "id": "lie_down",
+          "id": "bed_down",
           "label": {
-            "en": "Lie down",
+            "en": "Lower the bed",
+            "th": ""
+          }
+        },
+        {
+          "id": "sit_down",
+          "label": {
+            "en": "Please sit down",
             "th": ""
           }
         },
@@ -489,13 +837,6 @@
           "id": "light_off",
           "label": {
             "en": "Lights off",
-            "th": ""
-          }
-        },
-        {
-          "id": "listen",
-          "label": {
-            "en": "Listen",
             "th": ""
           }
         }
