@@ -186,3 +186,19 @@ the pupil.
 
 
 ---
+
+## Camera names in the tracker's camera list (2026-11-28)
+
+- **Problem:** the tracker's camera picker showed only numbers (0, 1). The glasses' camera can have a
+  different number depending on the device, so it was easy to pick the wrong one.
+- **Cause:** OpenCV cannot report camera names.
+- **Solution:** the tracker now asks the operating system for the names. On Windows it uses the
+  optional package `pygrabber` (listed in `requirements.txt`, installed only on Windows); on Linux and
+  Raspberry Pi it reads `/sys/class/video4linux/`. The list shows `number: name`, for example
+  `1: USB Camera`. If names are not available it falls back to plain numbers.
+- **Note:** the names come from DirectShow numbering on Windows while the tracker opens the camera with
+  MSMF. They matched on our laptop. If they ever disagree, change `CAMERA_BACKEND` at the top of
+  `Orlosky3DEyeTracker.py` to `cv2.CAP_DSHOW`.
+- **Not tested on a Raspberry Pi yet.**
+
+---

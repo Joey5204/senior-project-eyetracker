@@ -39,8 +39,8 @@ With the virtual environment active, from anywhere:
 python start.py
 ```
  
-This starts the web server, opens the page in gaze mode, and starts the eye tracker. In the small
-tracker window pick the camera and click **Start Camera**. Press **Ctrl+C** in the terminal to stop
+This starts the web server, opens the page in gaze mode, and starts the eye tracker. In the small tracker window pick the camera (the list shows its name, for example `0: USB Camera`)
+and click **Start Camera**. Press **Ctrl+C** in the terminal to stop
 everything.
  
 | Command | What it does |
@@ -95,6 +95,7 @@ python app\tools\make_audio.py
 | Tracker window closes right after **Start Camera** (`MSMF ... can't grab frame`) | Unplug the camera, plug it back in, and try again. Also close any other program using the camera, and end leftover `python.exe` processes. |
 | Many `MSMF ... can't be used to capture by index` warnings at startup | Harmless: the tracker is checking camera numbers 0-9. |
 | Yellow ellipse is off the pupil | A bright reflection can cover part of the pupil. Move the camera or LED slightly, or try another angle. See [documentation.md](documentation.md). |
+| Camera list shows only numbers, no names | On Windows run `pip install pygrabber` (it is in `requirements.txt`, so `pip install -r requirements.txt` also installs it). Names appear automatically on Linux / Raspberry Pi. |
  
 ## Web app
  

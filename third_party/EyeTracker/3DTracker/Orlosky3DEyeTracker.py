@@ -1,4 +1,6 @@
 import cv2
+import os
+import sys
 import random
 import math
 import numpy as np
@@ -25,6 +27,9 @@ pupil_confidence_threshold_sphere = 0.65  # Minimum pupil confidence for determi
 intersection_ray_count = 4  # Rays sampled for each intersection estimate
 minimum_intersection_angle_degrees = 8  # Minimum angle between sampled rays
 last_tracking_result = None  # Store the latest tracker output
+# Camera backend used both to list and to open cameras. Camera names (below) are read in this
+# backend's numbering on Windows, so keep the two the same: use cv2.CAP_DSHOW if names and numbers ever disagree.
+CAMERA_BACKEND = cv2.CAP_MSMF
 # --- Edge fallback: when the normal outline is poor (reflection over the pupil), fit only the real pupil edge ---
 EDGE_FALLBACK_ENABLED = True
 EDGE_FALLBACK_BELOW = 0.75   # only used when the normal confidence is under this
@@ -38,11 +43,41 @@ capture_frame_counter = 0          # counts processed frames while capture is en
 ellipse_capture_interval = 5      # save one ellipse every 10 frames
 max_stuck_ellipses = 20           # safety cap
 
+# Friendly camera names, as {camera number: name}. OpenCV cannot report names, so ask the operating system.
+# Windows needs the optional package pygrabber (pip install pygrabber); Linux/Raspberry Pi reads the name
+# from /sys. If names are not available this returns {} and the list simply shows numbers.
+def get_camera_names(max_cams=10):
+    names = {}
+    try:
+        if sys.platform.startswith("win"):
+            from pygrabber.dshow_graph import FilterGraph
+            for i, name in enumerate(FilterGraph().get_input_devices()):
+                names[i] = name
+        elif sys.platform.startswith("linux"):
+            for i in range(max_cams):
+                path = f"/sys/class/video4linux/video{i}/name"
+                if os.path.exists(path):
+                    with open(path) as f:
+                        names[i] = f.read().strip()
+    except ImportError:
+        print("Camera names are not shown. To show them on Windows: pip install pygrabber")
+        return {}
+    except Exception as e:
+        print("Could not read camera names:", e)
+        return {}
+    return names
+
+def camera_label(index, names):
+    return f"{index}: {names[index]}" if index in names else str(index)
+
+def camera_index_from_label(text):
+    return int(str(text).split(":")[0])
+
 # Function to detect available cameras
 def detect_cameras(max_cams=10):
     available_cameras = []
     for i in range(max_cams):
-        cap = cv2.VideoCapture(i, cv2.CAP_MSMF)
+        cap = cv2.VideoCapture(i, CAMERA_BACKEND)
         cap.set(cv2.CAP_PROP_FPS, 30)
         if cap.isOpened():
             available_cameras.append(i)
@@ -946,10 +981,10 @@ def process_camera():
     global capture_frame_counter
     global stuck_ellipses
 
-    cam_index = int(selected_camera.get())
+    cam_index = camera_index_from_label(selected_camera.get())
 
     reset_tracking_state()
-    cap = cv2.VideoCapture(cam_index, cv2.CAP_MSMF)
+    cap = cv2.VideoCapture(cam_index, CAMERA_BACKEND)
 
     if not cap.isOpened():
         print("Error: Could not open camera.")
@@ -1020,6 +1055,8 @@ def process_video():
 def selection_gui():
     global selected_camera
     cameras = detect_cameras()
+    camera_names = get_camera_names()
+    camera_labels = [camera_label(cam, camera_names) for cam in cameras]
 
     # Create Tkinter window
     root = tk.Tk()
@@ -1029,9 +1066,9 @@ def selection_gui():
     tk.Label(root, text="Select Camera:").pack(pady=5)
 
     selected_camera = tk.StringVar()
-    selected_camera.set(str(cameras[0]) if cameras else "No cameras found")
+    selected_camera.set(camera_labels[0] if cameras else "No cameras found")
 
-    camera_dropdown = ttk.Combobox(root, textvariable=selected_camera, values=[str(cam) for cam in cameras])
+    camera_dropdown = ttk.Combobox(root, textvariable=selected_camera, values=camera_labels, width=40)
     camera_dropdown.pack(pady=5)
 
     tk.Button(root, text="Start Camera", command=lambda: [root.destroy(), process_camera()]).pack(pady=5)
